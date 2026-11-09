@@ -1,5 +1,5 @@
 import * as P from './plan.js';
-import { openStore, cloudEnabled, newCoupleCode, PEOPLE, defaultData } from './store.js';
+import { openStore, cloudEnabled, newCoupleCode, newPerson, hasLocalData } from './store.js';
 import { Workout, loadAlerts, saveAlerts, unlockAudio, beep, say, locate, kindWord } from './timer.js';
 
 const VERSION = '1.0.0';
@@ -31,7 +31,14 @@ const S = {
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const today = () => new Date();
 const D = () => S.store.data;
-const person = id => D().people[id] || defaultData().people[id];
+// Pessoas do casal, na ordem cadastrada (atualizado a cada render).
+const PEOPLE = [];
+function syncPeople() {
+  const ps = S.store?.data?.people || {};
+  const ids = Object.keys(ps).sort((a, b) => (ps[a].order ?? 9) - (ps[b].order ?? 9) || a.localeCompare(b));
+  PEOPLE.splice(0, PEOPLE.length, ...ids);
+}
+const person = id => D().people[id] || newPerson('?', 0);
 const pname = id => person(id).name;
 const pcolor = id => COLORS[person(id).color] || COLORS.sky;
 const other = id => PEOPLE.find(p => p !== id);
@@ -112,8 +119,9 @@ function setRoute(r) { S.route = r; window.scrollTo(0, 0); render(); }
 
 function render() {
   if (!S.store) return;
-  document.documentElement.style.setProperty('--andre', pcolor('andre'));
-  document.documentElement.style.setProperty('--ivie', pcolor('ivie'));
+  syncPeople();
+  if (!PEOPLE.includes(S.me)) { S.onboarding = { step: 'pick' }; renderOnboarding(); return; }
+  PEOPLE.forEach((id, i) => document.documentElement.style.setProperty(`--p${i}`, pcolor(id)));
   const views = { hoje: viewToday, plano: viewPlan, provas: viewRaces, nos: viewUs, ajustes: viewSettings };
   app.className = 'app';
   app.innerHTML = (views[S.route] || viewToday)();
@@ -374,7 +382,7 @@ function viewUs() {
   for (let i = 0; i < 56; i++) {
     const d = P.addDays(start, i), k = P.ymd(d);
     const set = byDay[k];
-    cells += `<div class="c${k > tStr ? ' out' : ''}${k === tStr ? ' today' : ''}${evDays.has(k) ? ' race' : ''}" title="${k}">${set?.has('andre') ? '<i class="a"></i>' : ''}${set?.has('ivie') ? '<i class="b"></i>' : ''}</div>`;
+    cells += `<div class="c${k > tStr ? ' out' : ''}${k === tStr ? ' today' : ''}${evDays.has(k) ? ' race' : ''}" title="${k}">${set?.has(PEOPLE[0]) ? '<i class="a"></i>' : ''}${set?.has(PEOPLE[1]) ? '<i class="b"></i>' : ''}</div>`;
   }
 
   const hist = all.slice().reverse().slice(0, 40).map(s => {
@@ -398,7 +406,7 @@ function viewUs() {
     ${weekBlock()}
     <h2 class="sec">Últimas 8 semanas</h2>
     <div class="card"><div class="cal">${cells}</div>
-      <div class="cal-legend"><span style="${cvar('andre')}">${esc(pname('andre'))}</span><span style="${cvar('ivie')}">${esc(pname('ivie'))}</span><span style="--c:var(--text)">Prova</span></div></div>
+      <div class="cal-legend">${PEOPLE.map(id => `<span style="${cvar(id)}">${esc(pname(id))}</span>`).join('')}<span style="--c:var(--text)">Prova</span></div></div>
     <h2 class="sec">Histórico</h2>
     <div class="list">${hist || '<div class="empty">Nenhum treino ainda. O primeiro aparece aqui assim que vocês salvarem.</div>'}</div>`;
 }
@@ -416,6 +424,7 @@ function viewSettings() {
   const personBlock = id => {
     const p = person(id);
     return `<h2 class="sec">${esc(p.name)}</h2><div class="group" style="${cvar(id)}">
+      <div class="field"><label class="f" style="margin:0"><span>Nome</span><input class="input" data-a="pname" data-id="${id}" value="${esc(p.name)}" maxlength="24" autocomplete="off"></label></div>
       <div class="field row"><div><div class="lbl">Degrau atual</div><div class="hint">${P.ratioWords(p.level)}</div></div>
         <div class="stepper"><button data-a="lvl" data-id="${id}" data-v="-1" aria-label="Descer degrau">−</button><output class="num">${P.ratioLabel(p.level)}</output><button data-a="lvl" data-id="${id}" data-v="1" aria-label="Subir degrau">+</button></div></div>
       <div class="field"><div class="lbl">Cor</div><div class="swatches">${Object.entries(COLORS).map(([k, v]) =>
@@ -790,29 +799,24 @@ document.addEventListener('click', async ev => {
     case 'test-alerts': unlockAudio(); beep({ freq: 1046, times: 2, volume: S.alerts.volume }); setTimeout(() => say('Corre. 4 minutos', S.alerts), 500); break;
     case 'invite': {
       const url = `${location.origin}${location.pathname}?c=${S.code}`;
-      try { if (navigator.share) await navigator.share({ title: 'Nightrun', text: 'Nosso app de treino', url }); else { await navigator.clipboard.writeText(url); toast('Link copiado.'); } }
+      try { if (navigator.share) await navigator.share({ title: 'Nightrun', text: 'Entre no nosso Nightrun com este link', url }); else { await navigator.clipboard.writeText(url); toast('Link copiado.'); } }
       catch { try { await navigator.clipboard.writeText(url); toast('Link copiado.'); } catch {} }
       break;
     }
     case 'connect': openSheet({ kind: 'connect', code: '' }); break;
     case 'code-create': await connectCode(newCoupleCode(), true); break;
     case 'code-join': await connectCode((S.sheet.code || '').trim(), false); break;
-    case 'leave': ls.del('lal:code'); location.href = location.pathname; break;
+    case 'leave': ls.del('lal:code'); ls.del('lal:me'); location.href = location.pathname; break;
     case 'export': {
       const blob = new Blob([JSON.stringify(D(), null, 2)], { type: 'application/json' });
       const a2 = document.createElement('a'); a2.href = URL.createObjectURL(blob); a2.download = `nightrun-${P.ymd(today())}.json`; a2.click();
       break;
     }
-    case 'pick-me': {
-      S.me = v; ls.set('lal:me', v);
-      const urlCode = new URLSearchParams(location.search).get('c');
-      if (cloudEnabled && (urlCode || !S.code)) { S.onboarding = { step: 'connect', code: urlCode || '' }; renderOnboarding(); }
-      else boot();
-      break;
-    }
-    case 'ob-create': await obConnect(newCoupleCode(), true); break;
-    case 'ob-join': await obConnect((S.onboarding.code || '').trim(), false); break;
-    case 'ob-local': S.onboarding = null; boot(); break;
+    case 'ob-go': S.onboarding = { step: v, names: ['', ''], levels: [5, 5], code: S.onboarding?.code || '' }; renderOnboarding(); break;
+    case 'ob-create': await obCreate(); break;
+    case 'ob-join': await obJoin(); break;
+    case 'ob-pick': S.me = v; ls.set('lal:me', v); S.onboarding = null; history.replaceState(null, '', location.pathname); render(); break;
+    case 'retry': boot(); break;
   }
 });
 
@@ -829,6 +833,11 @@ document.addEventListener('input', ev => {
 document.addEventListener('change', async ev => {
   const el = ev.target;
   if (el.dataset.a === 'alert') { S.alerts[el.dataset.k] = el.checked; saveAlerts(S.alerts); }
+  if (el.dataset.a === 'pname') {
+    const n = el.value.trim();
+    if (n) { await S.store.updatePerson(el.dataset.id, { name: n }); toast('Nome salvo.'); }
+    else { toast('O nome não pode ficar vazio.'); render(); }
+  }
   if (el.dataset.a === 'pace') {
     const n = Number(String(el.value).replace(',', '.'));
     if (n > 3 && n < 20) await S.store.updatePerson(el.dataset.id, { [el.dataset.k]: n });
@@ -849,78 +858,136 @@ async function connectCode(code, create) {
   if (code.length < 20) { S.sheet.err = 'O código tem 20 caracteres. Confira se copiou inteiro.'; renderSheet(); return; }
   const local = S.store?.mode === 'local' ? JSON.parse(JSON.stringify(D())) : null;
   try {
-    const st = await openStore(code, { create });
+    const st = await openStore(code, { create, names: PEOPLE.map(pname) });
     if (create && local && (Object.keys(local.sessions).length || Object.keys(local.events).length)) await st.replaceAll(local);
     S.code = code; ls.set('lal:code', code);
     attach(st); closeSheet(); toast(create ? 'Código criado. Mande o convite.' : 'Conectado.');
   } catch (e) { S.sheet.err = friendly(e); renderSheet(); }
 }
-async function obConnect(code, create) {
-  if (code.length < 20) { S.onboarding.err = 'O código tem 20 caracteres. Confira se copiou inteiro.'; renderOnboarding(); return; }
-  S.onboarding.busy = true; renderOnboarding();
+async function obCreate() {
+  const ob = S.onboarding;
+  const names = ob.names.map(n => (n || '').trim());
+  if (!names[0] || !names[1]) { ob.err = 'Preencha os dois nomes.'; renderOnboarding(); return; }
+  ob.busy = true; ob.err = ''; renderOnboarding();
   try {
-    const st = await openStore(code, { create });
-    S.code = code; ls.set('lal:code', code); S.onboarding = null;
-    history.replaceState(null, '', location.pathname);
+    let st;
+    if (cloudEnabled) {
+      const code = newCoupleCode();
+      st = await openStore(code, { create: true, names });
+      S.code = code; ls.set('lal:code', code);
+    } else {
+      st = await openStore(null, { names });
+    }
+    const lv = (ob.levels || [5, 5]).map(v => Number(v) || 5);
+    await st.updatePerson('p1', { level: lv[0] }); await st.updatePerson('p2', { level: lv[1] });
+    S.me = 'p1'; ls.set('lal:me', 'p1'); S.onboarding = null;
     attach(st);
-  } catch (e) { S.onboarding.busy = false; S.onboarding.err = friendly(e); renderOnboarding(); }
+    toast(cloudEnabled ? `Pronto. Em Ajustes, mande o convite para ${names[1]}.` : 'Pronto.');
+  } catch (e) { ob.busy = false; ob.err = friendly(e); renderOnboarding(); }
+}
+async function obJoin() {
+  const ob = S.onboarding;
+  const code = (ob.code || '').trim();
+  if (code.length < 20) { ob.err = 'O código tem 20 caracteres. Confira se copiou inteiro.'; renderOnboarding(); return; }
+  ob.busy = true; ob.err = ''; renderOnboarding();
+  try {
+    const st = await openStore(code, { create: false });
+    S.code = code; ls.set('lal:code', code);
+    S.me = null; ls.del('lal:me');
+    S.onboarding = { step: 'pick' };
+    attach(st);
+  } catch (e) { ob.busy = false; ob.err = friendly(e); renderOnboarding(); }
 }
 
 function attach(st) {
   S.store = st;
-  st.subscribe(() => { render(); if (S.sheet && ['session'].includes(S.sheet.kind)) renderSheet(); });
+  st.subscribe(() => { if (S.onboarding) { if (S.onboarding.step === 'pick') renderOnboarding(); return; } render(); if (S.sheet && ['session'].includes(S.sheet.kind)) renderSheet(); });
   render();
   // treino em andamento?
   const ap = ls.get('lal:activePlan');
-  if (ap && !S.workout) { try { startWorkout(JSON.parse(ap)); } catch { ls.del('lal:activePlan'); } }
+  if (ap && !S.workout && !S.onboarding) { try { startWorkout(JSON.parse(ap)); } catch { ls.del('lal:activePlan'); } }
 }
 
 // ---------- entrada ----------
 function renderOnboarding() {
   tabsEl.hidden = true;
   app.className = 'app bare';
-  const ob = S.onboarding || { step: 'who' };
-  if (ob.step === 'who') {
-    app.innerHTML = `<section class="welcome">
-      <div class="lanes-art" aria-hidden="true"><i style="--c:${COLORS.sky};--x:58%"></i><i style="--c:${COLORS.rose};--x:64%"></i></div>
+  const ob = S.onboarding || { step: 'start' };
+  const err = ob.err ? `<p class="small" style="color:var(--danger);margin-top:12px">${esc(ob.err)}</p>` : '';
+  const busy = ob.busy ? 'disabled' : '';
+  const art = `<div class="lanes-art" aria-hidden="true"><i style="--c:${COLORS.sky};--x:58%"></i><i style="--c:${COLORS.rose};--x:64%"></i></div>`;
+  if (ob.step === 'start') {
+    app.innerHTML = `<section class="welcome">${art}
       <h1 class="wordmark">Night<span class="l2">run</span></h1>
-      <p class="lead">Treino de corrida para dois, ajustado a cada treino, mirando a próxima prova.</p>
-      <p class="sub" style="margin-bottom:10px">Quem está usando este iPhone?</p>
-      <div class="pick"><button data-a="pick-me" data-v="andre" style="--c:${COLORS.sky}">André</button><button data-a="pick-me" data-v="ivie" style="--c:${COLORS.rose}">Ivie</button></div>
+      <p class="lead">Treino de corrida para duas pessoas, ajustado a cada treino e mirando a próxima prova.</p>
+      <button class="btn" data-a="ob-go" data-v="create">Começar</button>
+      ${cloudEnabled ? `<button class="btn ghost" data-a="ob-go" data-v="join" style="margin-top:8px">Já tenho um código</button>` : ''}
     </section>`;
     return;
   }
-  const o = S.me === 'andre' ? 'Ivie' : 'André';
-  app.innerHTML = `<section class="welcome">
-    <h1 class="wordmark" style="font-size:48px">Conectar<span class="l2">com ${o}</span></h1>
-    <p class="lead">Os dois iPhones usam o mesmo código para ver o progresso um do outro.</p>
-    ${ob.code ? `<label class="f" style="margin-top:0"><span>Código recebido</span><input class="input" data-bind="code" value="${esc(ob.code)}" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
-      <div class="actions"><button class="btn" data-a="ob-join" ${ob.busy ? 'disabled' : ''}>${ob.busy ? 'Conectando…' : 'Entrar'}</button></div>`
-    : `<button class="btn" data-a="ob-create" ${ob.busy ? 'disabled' : ''}>${ob.busy ? 'Criando…' : 'Criar código do casal'}</button>
-      <label class="f"><span>Já recebeu um código?</span><input class="input" data-bind="code" value="" placeholder="Cole aqui" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
-      <div class="actions"><button class="btn quiet" data-a="ob-join" ${ob.busy ? 'disabled' : ''}>Entrar com o código</button></div>`}
-    ${ob.err ? `<p class="small" style="color:var(--danger)">${esc(ob.err)}</p>` : ''}
-    <button class="btn ghost" data-a="ob-local" style="margin-top:8px">Usar só neste iPhone por enquanto</button>
-  </section>`;
+  if (ob.step === 'create') {
+    app.innerHTML = `<section class="welcome">
+      <h1 class="wordmark" style="font-size:48px">Quem vai<span class="l2">treinar?</span></h1>
+      <p class="lead">${cloudEnabled ? 'Depois você manda um convite para a outra pessoa entrar pelo celular dela.' : 'Os dados ficam só neste aparelho.'}</p>
+      <label class="f" style="margin-top:0"><span>Seu nome</span><input class="input" data-bind="names.0" value="${esc(ob.names[0])}" maxlength="24" autocomplete="given-name"></label>
+      <label class="f"><span>Quem treina com você</span><input class="input" data-bind="names.1" value="${esc(ob.names[1])}" maxlength="24" autocomplete="off"></label>
+      <div>${[0, 1].map(i => `<label class="f"><span>${i ? 'Quanto a outra pessoa corre sem parar hoje' : 'Quanto você corre sem parar hoje'}</span>
+        <select class="input" data-bind="levels.${i}">${P.START_OPTIONS.map(o => `<option value="${o.level}" ${Number(ob.levels?.[i] ?? 5) === o.level ? 'selected' : ''}>${o.label}</option>`).join('')}</select></label>`).join('')}</div>
+      <p class="small" style="margin-top:8px">Define o ponto de partida do plano. Dá para ajustar depois em Ajustes.</p>
+      <div class="actions"><button class="btn" data-a="ob-create" ${busy}>${ob.busy ? 'Criando…' : 'Criar'}</button>
+      <button class="btn ghost" data-a="ob-go" data-v="start" style="margin-top:4px">Voltar</button></div>
+      ${err}
+    </section>`;
+    return;
+  }
+  if (ob.step === 'join') {
+    app.innerHTML = `<section class="welcome">
+      <h1 class="wordmark" style="font-size:48px">Entrar com<span class="l2">um código</span></h1>
+      <p class="lead">Cole o código que a outra pessoa te mandou. Ele aparece em Ajustes no celular dela.</p>
+      <label class="f" style="margin-top:0"><span>Código</span><input class="input" data-bind="code" value="${esc(ob.code || '')}" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+      <div class="actions"><button class="btn" data-a="ob-join" ${busy}>${ob.busy ? 'Entrando…' : 'Entrar'}</button>
+      <button class="btn ghost" data-a="ob-go" data-v="start" style="margin-top:4px">Voltar</button></div>
+      ${err}
+    </section>`;
+    return;
+  }
+  if (ob.step === 'pick') {
+    syncPeople();
+    app.innerHTML = `<section class="welcome">${art}
+      <h1 class="wordmark" style="font-size:48px">Quem é<span class="l2">você?</span></h1>
+      <p class="lead">Escolha uma vez. Fica salvo neste aparelho.</p>
+      <div class="pick">${PEOPLE.map(id => `<button data-a="ob-pick" data-v="${id}" style="--c:${pcolor(id)}">${esc(pname(id))}</button>`).join('')}</div>
+    </section>`;
+    return;
+  }
+  if (ob.step === 'error') {
+    app.innerHTML = `<section class="welcome">
+      <h1 class="wordmark" style="font-size:48px">Sem<span class="l2">conexão</span></h1>
+      <p class="lead">${esc(ob.err || 'Não deu para carregar os dados.')}</p>
+      <button class="btn" data-a="retry">Tentar de novo</button>
+    </section>`;
+  }
 }
 
 async function boot() {
+  tabsEl.hidden = true;
   app.className = 'app bare';
   app.innerHTML = '<p class="sub" style="padding-top:40px">Carregando…</p>';
-  let st;
-  try { st = await openStore(cloudEnabled ? S.code : null); }
-  catch (e) {
-    st = await openStore(null);
-    toast('Sem conexão com o código. Usando dados deste iPhone.');
+  try {
+    const st = await openStore(cloudEnabled ? S.code : null);
+    S.onboarding = null;
+    attach(st);
+  } catch (e) {
+    S.onboarding = { step: 'error', err: friendly(e) }; renderOnboarding();
   }
-  attach(st);
 }
 
 function init() {
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
   const urlCode = new URLSearchParams(location.search).get('c');
-  if (!S.me) { S.onboarding = { step: 'who' }; renderOnboarding(); return; }
-  if (cloudEnabled && urlCode && urlCode !== S.code) { S.onboarding = { step: 'connect', code: urlCode }; renderOnboarding(); return; }
+  if (cloudEnabled && urlCode && urlCode !== S.code) { S.onboarding = { step: 'join', code: urlCode, names: ['', ''] }; renderOnboarding(); return; }
+  const ready = cloudEnabled ? !!S.code : hasLocalData();
+  if (!ready) { S.onboarding = { step: 'start' }; renderOnboarding(); return; }
   boot();
 }
 init();

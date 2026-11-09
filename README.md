@@ -1,6 +1,6 @@
 # Nightrun
 
-Treino de corrida para dois (André e Ivie), com plano adaptativo rumo à próxima prova.
+Treino de corrida para duas pessoas, com plano adaptativo rumo à próxima prova. Qualquer dupla pode usar: cada uma tem seu código e seus dados separados.
 É um web app estático: GitHub Pages + Firestore para sincronizar os dois iPhones.
 
 ## 1. Publicar no GitHub Pages
@@ -21,11 +21,12 @@ Sem o Firebase configurado, o app funciona em **modo local**: cada iPhone guarda
 
 ## 3. Primeiro uso
 
-1. **André:** abra o link no Safari, toque em *Compartilhar › Adicionar à Tela de Início*, abra pelo ícone, escolha "André" e toque em **Criar código do casal**.
-2. Em **Ajustes › Copiar link de convite**, mande o link para a Ivie.
-3. **Ivie:** abra o link no Safari. O app já entra no mesmo código. Escolha "Ivie" e depois adicione à tela de início.
+1. Abra o link no Safari, toque em *Compartilhar › Adicionar à Tela de Início* e abra pelo ícone.
+2. Toque em **Começar**, digite os dois nomes e quanto cada um corre sem parar hoje. Toque em **Criar**. O app gera o código da dupla.
+3. Em **Ajustes › Copiar link de convite**, mande o link para a outra pessoa.
+4. Ela instala o app, toca em **Já tenho um código**, cola o código (está no fim do link e em Ajustes) e escolhe o próprio nome.
 
-Ao adicionar à tela de início, o iOS guarda os dados do app separados do Safari. Por isso, faça a escolha de perfil e o código no app já instalado. Se precisar, o código aparece em Ajustes e pode ser colado.
+Cada dupla fica num documento separado no Firestore (`couples/{código}`). Sem o código, ninguém lê nem lista os dados.
 
 ## Como o plano funciona
 

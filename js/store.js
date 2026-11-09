@@ -5,24 +5,21 @@ const FB = 'https://www.gstatic.com/firebasejs/10.12.2';
 const LOCAL_KEY = 'lal:data';
 const NET_MSG = 'Não deu para conectar ao servidor. Confira a internet e tente de novo.';
 
-export const PEOPLE = ['andre', 'ivie'];
-
-export function defaultData() {
+// Cada casal tem duas pessoas, guardadas em slots (p1, p2). Os nomes são cadastrados no app.
+// Casais antigos podem ter outras chaves; o app ordena pelo campo "order".
+export function newPerson(name, order) {
+  return { name, order, color: order === 0 ? 'sky' : 'rose', level: 5, streak: 0, painFlag: false, runPace: 7.5, walkPace: 11 };
+}
+export function defaultData(names = ['Pessoa 1', 'Pessoa 2']) {
   return {
-    people: {
-      andre: { name: 'André', color: 'sky', level: 5, streak: 0, painFlag: false, runPace: 7.5, walkPace: 11 },
-      ivie:  { name: 'Ivie',  color: 'rose', level: 5, streak: 0, painFlag: false, runPace: 7.5, walkPace: 11 },
-    },
+    people: { p1: newPerson(names[0], 0), p2: newPerson(names[1], 1) },
     settings: { weeklyTarget: 3 },
-    events: {
-      srun2026: {
-        id: 'srun2026', name: 'S-Run Novo Hamburgo', date: '2026-12-13', time: '',
-        distanceKm: 5, goal: 'runwalk', location: 'Novo Hamburgo', url: '',
-        notes: 'Teste piloto. Horário a confirmar.', results: {},
-      },
-    },
+    events: {},
     sessions: {},
   };
+}
+export function hasLocalData() {
+  try { return !!localStorage.getItem(LOCAL_KEY); } catch { return false; }
 }
 
 export const cloudEnabled = !!(firebaseConfig && firebaseConfig.projectId);
@@ -34,9 +31,9 @@ export function newCoupleCode() {
 }
 
 // Interface comum: { mode, data, subscribe(fn), updatePerson, updateSettings, saveEvent, deleteEvent, saveSession, deleteSession, replaceAll }
-export async function openStore(coupleCode, { create = false } = {}) {
-  if (cloudEnabled && coupleCode) return openCloud(coupleCode, create);
-  return openLocal();
+export async function openStore(coupleCode, { create = false, names } = {}) {
+  if (cloudEnabled && coupleCode) return openCloud(coupleCode, create, names);
+  return openLocal(names);
 }
 
 function emitter() {
@@ -45,10 +42,10 @@ function emitter() {
 }
 
 // ---------- local ----------
-function openLocal() {
+function openLocal(names) {
   let data;
   try { data = JSON.parse(localStorage.getItem(LOCAL_KEY)); } catch { data = null; }
-  if (!data) data = defaultData();
+  if (!data) { data = defaultData(names); try { localStorage.setItem(LOCAL_KEY, JSON.stringify(data)); } catch {} }
   const ev = emitter();
   const save = () => { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(data)); } catch {} ev.emit(data); };
   return {
@@ -66,7 +63,7 @@ function openLocal() {
 }
 
 // ---------- nuvem ----------
-async function openCloud(code, create) {
+async function openCloud(code, create, names) {
   const { initializeApp } = await import(`${FB}/firebase-app.js`);
   const fs = await import(`${FB}/firebase-firestore.js`);
   const app = initializeApp(firebaseConfig);
@@ -82,10 +79,9 @@ async function openCloud(code, create) {
   try { snap = await fs.getDoc(root); }
   catch (e) { throw new Error(NET_MSG); }
   if (!snap.exists()) {
-    if (!create) throw new Error('Código não encontrado. Confira com quem criou.');
-    const d = defaultData();
+    if (!create) throw new Error('Código não encontrado. Confira se copiou o código inteiro.');
+    const d = defaultData(names);
     await fs.setDoc(root, { people: d.people, settings: d.settings, createdAt: Date.now() });
-    for (const e of Object.values(d.events)) await fs.setDoc(fs.doc(evCol, e.id), e);
   }
 
   const data = { people: {}, settings: {}, events: {}, sessions: {} };
