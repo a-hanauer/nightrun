@@ -1,0 +1,16 @@
+{
+  "name": "Nightrun",
+  "short_name": "Nightrun",
+  "description": "Treino de corrida para dois, ajustado a cada treino.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0F1522",
+  "theme_color": "#0F1522",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
