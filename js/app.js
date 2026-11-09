@@ -1064,3 +1064,32 @@ function init() {
   boot();
 }
 init();
+/* Barra de abas flutuante, como no iOS 26: encolhe para uma bolinha com a aba atual ao rolar para baixo e volta
+   inteira ao rolar para cima, ao chegar no topo, ao trocar de aba ou ao tocar nela. */
+(function () {
+  var bar = document.querySelector('#tabs');
+  if (!bar) return;
+  var last = 0, min = false, trava = 0;
+  function poe(v) { if (v === min) return; min = v; bar.classList.toggle('min', v); }
+  function topo(e) {
+    var t = e && e.target;
+    if (t && t.nodeType === 1 && t !== document.documentElement && t !== document.body) return t.scrollTop;
+    return window.scrollY || document.documentElement.scrollTop || 0;
+  }
+  document.addEventListener('scroll', function (e) {
+    if (Date.now() < trava || bar.hidden) return;
+    var t = e && e.target;
+    if (t && t.nodeType === 1 && t.closest && t.closest('[role="dialog"], .sheet, .sheet-bg, .cook, .modal')) return;   // folhas por cima não mexem na barra
+    var y = topo(e);
+    if (y < 30) poe(false);
+    else if (y - last > 6) poe(true);
+    else if (last - y > 6) poe(false);
+    last = y;
+  }, { capture: true, passive: true });
+  // tocar na bolinha só abre a barra (não troca de aba)
+  bar.addEventListener('click', function (e) {
+    if (!min) return;
+    e.preventDefault(); e.stopPropagation(); poe(false); trava = Date.now() + 450;
+  }, true);
+  window.addEventListener('hashchange', function () { poe(false); last = 0; trava = Date.now() + 450; });
+})();

@@ -440,3 +440,27 @@ label.f > span, .f > .flabel { display: block; font-size: 13px; color: var(--mut
   .phase .word { font-size: 64px; }
   .wordmark { font-size: 56px; }
 }
+
+/* ---------- abas no estilo do iOS 26 ----------
+   Cápsula de vidro flutuando sobre o conteúdo. Ao rolar para baixo, encolhe para uma bolinha com a aba atual
+   (js/app.js, "barra de abas flutuante"); ao rolar para cima, ao chegar no topo ou ao tocar nela, volta inteira. */
+:root { --tb-b: max(10px, calc(var(--sab-lock, var(--sab)) - 12px)); }
+.tabs {
+  left: max(14px, env(safe-area-inset-left, 0px), calc(50% - 260px)); right: auto; width: min(520px, calc(100% - 28px));
+  bottom: var(--tb-b); height: 64px; padding: 4px; align-items: stretch; overflow: hidden;
+  border: .5px solid rgba(255, 255, 255, .16); border-radius: 32px;
+  background: rgba(30, 38, 58, .52);
+  -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .38), inset 0 1px 0 rgba(255, 255, 255, .10);
+  transition: width .42s cubic-bezier(.25, .9, .3, 1.05), height .42s cubic-bezier(.25, .9, .3, 1.05), padding .42s;
+}
+.tabs .wrap { max-width: none; }
+.tab { height: 56px; border-radius: 28px; gap: 2px; font-size: 10.5px; font-weight: 600; transition: background .2s, transform .15s; }
+.tab:active { transform: scale(.93); }
+.tab[aria-current="page"] { background: rgba(255, 255, 255, .11); }
+.tabs.min { width: 56px; height: 56px; padding: 3px; }
+.tabs.min .wrap { grid-template-columns: minmax(0, 1fr); }
+.tabs.min .tab:not([aria-current="page"]) { display: none; }
+.tabs.min .tab { height: 50px; background: none; }
+.tabs.min .tab span { display: none; }
+@media (prefers-reduced-motion: reduce) { .tabs, .tab { transition: none; } }
