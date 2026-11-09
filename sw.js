@@ -1,5 +1,5 @@
 // Cache do app para abrir rápido e funcionar sem sinal. Rede primeiro: atualizações chegam na hora.
-const CACHE = 'nightrun-v9';
+const CACHE = 'nightrun-v10';
 const SHELL = ['./', 'index.html', 'css/styles.css', 'js/app.js', 'js/plan.js', 'js/store.js', 'js/timer.js', 'js/firebase-config.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {

@@ -1093,3 +1093,56 @@ init();
   }, true);
   window.addEventListener('hashchange', function () { poe(false); last = 0; trava = Date.now() + 450; });
 })();
+/* Vidro da barra de abas (opção "B", 09/11/2026): a aba escolhida só muda para a cor do app; enquanto o dedo está na
+   barra aparece uma gota de vidro que cresce, segue o dedo e acende a aba de baixo; ao soltar, encaixa nela e some.
+   Arrastar até outra aba e soltar troca de aba, como no iOS 26. */
+(function () {
+  var bar = document.querySelector('#tabs'), SEL = '.tab';
+  if (!bar) return;
+  var gota = null, toque = null, ignoraAte = 0;
+  var reduz = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function abas() { return [].filter.call(bar.querySelectorAll(SEL), function (a) { return a.offsetWidth > 0; }); }
+  function sob(x) {
+    var l = abas(), m = null, d = 1e9;
+    l.forEach(function (a) { var r = a.getBoundingClientRect(), c = Math.abs(x - (r.left + r.width / 2)); if (c < d) { d = c; m = a; } });
+    return m;
+  }
+  function poe(x, lente) {
+    var a = sob(x); if (!a) return null;
+    var rb = bar.getBoundingClientRect(), ra = a.getBoundingClientRect(), w = ra.width;
+    var cx = lente ? Math.max(rb.left + 4 + w / 2, Math.min(rb.right - 4 - w / 2, x)) : ra.left + w / 2;
+    gota.style.width = w + 'px'; gota.style.height = ra.height + 'px'; gota.style.top = (ra.top - rb.top) + 'px';
+    gota.style.transform = 'translateX(' + (cx - rb.left - w / 2) + 'px)' + (lente ? ' scale(1.16, 1.1)' : '');
+    abas().forEach(function (b) { b.classList.toggle('tb-sob', b === a); });
+    return a;
+  }
+  bar.addEventListener('pointerdown', function (e) {
+    if (bar.classList.contains('min') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    if (!gota || gota.parentNode !== bar) { gota = document.createElement('i'); gota.className = 'tb-gota'; gota.setAttribute('aria-hidden', 'true'); bar.appendChild(gota); }
+    toque = { x0: e.clientX, mexeu: false, a0: sob(e.clientX) };
+    gota.style.transition = 'none'; poe(e.clientX, true);
+    void gota.offsetWidth; gota.style.transition = ''; gota.classList.add('on');
+  });
+  bar.addEventListener('pointermove', function (e) {
+    if (!toque) return;
+    if (Math.abs(e.clientX - toque.x0) > 8) toque.mexeu = true;
+    gota.style.transition = 'opacity .22s'; poe(e.clientX, true);
+  });
+  function fim(e, cancela) {
+    if (!toque) return;
+    var t = toque; toque = null;
+    gota.style.transition = reduz ? 'opacity .15s' : '';
+    var a = poe(cancela ? t.x0 : e.clientX, false);
+    gota.classList.remove('on');
+    abas().forEach(function (b) { b.classList.remove('tb-sob'); });
+    if (!cancela && t.mexeu && a) {               // arrastou até outra aba: troca para ela
+      ignoraAte = Date.now() + 600;
+      if (!a.matches('[aria-current="page"]')) a.click();
+    }
+  }
+  bar.addEventListener('dragstart', function (e) { e.preventDefault(); });   // links não viram arrasto do navegador
+  bar.addEventListener('pointerup', function (e) { fim(e, false); });
+  bar.addEventListener('pointercancel', function (e) { fim(e, true); });
+  // depois de arrastar, o toque de verdade (no ponto onde começou) não conta
+  bar.addEventListener('click', function (e) { if (e.isTrusted && Date.now() < ignoraAte) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+})();
