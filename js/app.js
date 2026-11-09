@@ -21,6 +21,9 @@ const ls = {
   del(k) { try { localStorage.removeItem(k); } catch {} },
 };
 
+const STANDALONE = navigator.standalone === true || window.matchMedia?.('(display-mode: standalone)').matches;
+const SHARE_ICON = '<svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M8 11V1M4.5 4.5L8 1l3.5 3.5M5 7H2.5v9.5h11V7H11"/></svg>';
+
 const S = {
   store: null, me: ls.get('lal:me'), code: ls.get('lal:code'),
   route: 'hoje', mode: ls.get('lal:mode', 'together'), forceType: null,
@@ -799,7 +802,7 @@ document.addEventListener('click', async ev => {
     case 'test-alerts': unlockAudio(); beep({ freq: 1046, times: 2, volume: S.alerts.volume }); setTimeout(() => say('Corre. 4 minutos', S.alerts), 500); break;
     case 'invite': {
       const url = `${location.origin}${location.pathname}?c=${S.code}`;
-      try { if (navigator.share) await navigator.share({ title: 'Nightrun', text: 'Entre no nosso Nightrun com este link', url }); else { await navigator.clipboard.writeText(url); toast('Link copiado.'); } }
+      try { if (navigator.share) await navigator.share({ title: 'Nightrun', text: 'Bora treinar no Nightrun? Abra o link, copie o código e instale na tela de início.', url }); else { await navigator.clipboard.writeText(url); toast('Link copiado.'); } }
       catch { try { await navigator.clipboard.writeText(url); toast('Link copiado.'); } catch {} }
       break;
     }
@@ -812,7 +815,23 @@ document.addEventListener('click', async ev => {
       const a2 = document.createElement('a'); a2.href = URL.createObjectURL(blob); a2.download = `nightrun-${P.ymd(today())}.json`; a2.click();
       break;
     }
-    case 'ob-go': S.onboarding = { step: v, names: ['', ''], levels: [5, 5], code: S.onboarding?.code || '' }; renderOnboarding(); break;
+    case 'ob-go': S.onboarding = { step: v, names: ['', ''], levels: [5, 5], code: S.onboarding?.code || '', browser: S.onboarding?.browser }; renderOnboarding(); break;
+    case 'ob-browser': S.onboarding = { step: 'start', browser: true }; renderOnboarding(); break;
+    case 'copy-code': {
+      const c = S.onboarding.code;
+      try { await navigator.clipboard.writeText(c); S.onboarding.copied = true; renderOnboarding(); }
+      catch { toast('Não deu para copiar. Toque e segure o código para copiar.'); }
+      break;
+    }
+    case 'paste-code': {
+      try {
+        const t = (await navigator.clipboard.readText() || '').trim();
+        const m = t.match(/[a-z2-9]{20}/);
+        if (!m) { toast('A área de transferência não tem um código.'); break; }
+        S.onboarding.code = m[0]; S.onboarding.err = ''; renderOnboarding();
+      } catch { toast('Toque e segure o campo e escolha Colar.'); }
+      break;
+    }
     case 'ob-create': await obCreate(); break;
     case 'ob-join': await obJoin(); break;
     case 'ob-pick': S.me = v; ls.set('lal:me', v); S.onboarding = null; history.replaceState(null, '', location.pathname); render(); break;
@@ -909,6 +928,11 @@ function attach(st) {
 }
 
 // ---------- entrada ----------
+const installSteps = (extra = '') => `<ol class="steps">
+  <li><span class="n">1</span><div>No Safari, toque em <b>Compartilhar</b> ${SHARE_ICON}. Nas versões mais novas do iOS, ele fica dentro do menu <b>•••</b>.</div></li>
+  <li><span class="n">2</span><div>Escolha <b>Adicionar à Tela de Início</b>.</div></li>
+  <li><span class="n">3</span><div>Abra o Nightrun pelo ícone novo${extra}.</div></li>
+</ol>`;
 function renderOnboarding() {
   tabsEl.hidden = true;
   app.className = 'app bare';
@@ -916,6 +940,25 @@ function renderOnboarding() {
   const err = ob.err ? `<p class="small" style="color:var(--danger);margin-top:12px">${esc(ob.err)}</p>` : '';
   const busy = ob.busy ? 'disabled' : '';
   const art = `<div class="lanes-art" aria-hidden="true"><i style="--c:${COLORS.sky};--x:58%"></i><i style="--c:${COLORS.rose};--x:64%"></i></div>`;
+  if (ob.step === 'invite') {
+    app.innerHTML = `<section class="welcome">${art}
+      <h1 class="wordmark" style="font-size:48px">Você foi<span class="l2">convidado</span></h1>
+      <p class="lead">O Nightrun funciona instalado na tela de início. Copie o código antes, para colar no app.</p>
+      <div class="code-box"><div class="code">${esc(ob.code)}</div><button class="btn" data-a="copy-code">${ob.copied ? 'Código copiado' : 'Copiar código'}</button></div>
+      ${installSteps(', toque em <b>Já tenho um código</b> e depois em <b>Colar</b>')}
+      <button class="btn ghost" data-a="ob-go" data-v="join" style="margin-top:8px">Usar aqui no navegador</button>
+    </section>`;
+    return;
+  }
+  if (ob.step === 'start' && !STANDALONE && !ob.browser) {
+    app.innerHTML = `<section class="welcome">${art}
+      <h1 class="wordmark">Night<span class="l2">run</span></h1>
+      <p class="lead">Treino de corrida para duas pessoas. Antes de começar, instale na tela de início: os dados do app instalado ficam separados dos do Safari.</p>
+      ${installSteps()}
+      <button class="btn ghost" data-a="ob-browser" style="margin-top:8px">Continuar no navegador</button>
+    </section>`;
+    return;
+  }
   if (ob.step === 'start') {
     app.innerHTML = `<section class="welcome">${art}
       <h1 class="wordmark">Night<span class="l2">run</span></h1>
@@ -944,7 +987,9 @@ function renderOnboarding() {
     app.innerHTML = `<section class="welcome">
       <h1 class="wordmark" style="font-size:48px">Entrar com<span class="l2">um código</span></h1>
       <p class="lead">Cole o código que a outra pessoa te mandou. Ele aparece em Ajustes no celular dela.</p>
-      <label class="f" style="margin-top:0"><span>Código</span><input class="input" data-bind="code" value="${esc(ob.code || '')}" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+      <label class="f" style="margin-top:0"><span>Código</span>
+        <div class="paste-row"><input class="input" data-bind="code" value="${esc(ob.code || '')}" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="20 letras e números">
+        ${navigator.clipboard?.readText ? '<button class="btn quiet" data-a="paste-code">Colar</button>' : ''}</div></label>
       <div class="actions"><button class="btn" data-a="ob-join" ${busy}>${ob.busy ? 'Entrando…' : 'Entrar'}</button>
       <button class="btn ghost" data-a="ob-go" data-v="start" style="margin-top:4px">Voltar</button></div>
       ${err}
@@ -985,7 +1030,10 @@ async function boot() {
 function init() {
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
   const urlCode = new URLSearchParams(location.search).get('c');
-  if (cloudEnabled && urlCode && urlCode !== S.code) { S.onboarding = { step: 'join', code: urlCode, names: ['', ''] }; renderOnboarding(); return; }
+  if (cloudEnabled && urlCode && urlCode !== S.code) {
+    S.onboarding = { step: STANDALONE ? 'join' : 'invite', code: urlCode, names: ['', ''] };
+    renderOnboarding(); return;
+  }
   const ready = cloudEnabled ? !!S.code : hasLocalData();
   if (!ready) { S.onboarding = { step: 'start' }; renderOnboarding(); return; }
   boot();

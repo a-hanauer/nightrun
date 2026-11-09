@@ -389,6 +389,17 @@ label.f > span, .f > .flabel { display: block; font-size: 13px; color: var(--mut
 .welcome .lanes-art i { display: block; height: 34px; border-radius: 17px; background: var(--surface); position: relative; }
 .welcome .lanes-art i::after { content: ''; position: absolute; top: 3px; width: 28px; height: 28px; border-radius: 50%; background: var(--c); left: var(--x); }
 
+/* convite e instalação */
+.steps { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 12px; }
+.steps li { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; color: var(--muted); }
+.steps li b { color: var(--text); font-weight: 600; }
+.steps .n { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); color: var(--text); display: grid; place-items: center; font: 700 15px/1 var(--display); }
+.code-box { background: var(--surface); border-radius: var(--r-card); padding: 16px; }
+.code-box .code { font-size: 17px; margin: 0 0 12px; text-align: center; user-select: all; -webkit-user-select: all; }
+.paste-row { display: flex; gap: 8px; }
+.paste-row .input { flex: 1; min-width: 0; }
+.paste-row .btn { width: auto; height: 46px; padding: 0 16px; font-size: 15px; flex: none; }
+
 /* ---------- toast ---------- */
 .toast {
   position: fixed; left: 50%; bottom: calc(var(--tabbar) + var(--sab) + 18px); z-index: 80;
