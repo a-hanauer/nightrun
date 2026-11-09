@@ -28,7 +28,7 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
 html, body { overflow-x: hidden; }
 body {
   margin: 0; background: var(--bg); color: var(--text);
@@ -148,8 +148,10 @@ h2.sec:first-child { margin-top: 0; }
 
 .seg {
   display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr;
-  background: var(--bg); border-radius: 10px; padding: 3px; gap: 2px;
+  background: var(--surface); border-radius: 10px; padding: 3px; gap: 2px;
 }
+/* dentro de superfícies, o trilho usa o fundo da página para contrastar */
+.card .seg, .group .seg, .sheet .seg { background: var(--bg); }
 .seg button {
   height: 32px; padding: 0 14px; border-radius: 8px; font-size: 14px; font-weight: 500; color: var(--muted);
   white-space: nowrap;
@@ -285,6 +287,7 @@ details.explain li + li { margin-top: 6px; }
 
 .stepper { display: flex; align-items: center; gap: 4px; }
 .stepper button { width: 36px; height: 36px; border-radius: 10px; background: var(--surface-2); font-size: 20px; line-height: 1; }
+.stepper button[disabled] { opacity: .35; }
 .stepper output { min-width: 76px; text-align: center; font: 700 20px/1 var(--display); }
 .swatches { display: flex; gap: 10px; margin-top: 10px; }
 .swatches button { width: 30px; height: 30px; border-radius: 50%; background: var(--c); }
@@ -329,9 +332,10 @@ label.f > span, .f > .flabel { display: block; font-size: 13px; color: var(--mut
 .sheet .block:first-of-type { border-top: 0; padding-top: 0; }
 .sheet .block-name { display: flex; align-items: center; gap: 8px; font: 700 22px/1 var(--display); }
 .sheet .block-name::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
-.effort { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-.effort button { height: 46px; border-radius: 10px; background: var(--bg); font: 700 20px/1 var(--display); color: var(--muted); }
-.effort button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+.opts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; }
+.opts button { height: 44px; border-radius: 10px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); font-size: 15px; font-weight: 500; padding: 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opts button[aria-pressed="true"] { background: var(--text); color: var(--bg); box-shadow: none; }
+.effort button { height: 46px; font: 700 20px/1 var(--display); }
 .effort-label { font-size: 13px; color: var(--muted); margin-top: 6px; min-height: 18px; }
 .result-line { display: flex; gap: 10px; align-items: flex-start; padding: 12px 0; }
 .result-line + .result-line { border-top: 1px solid var(--line); }
@@ -395,6 +399,15 @@ label.f > span, .f > .flabel { display: block; font-size: 13px; color: var(--mut
 .welcome .lanes-art { display: grid; gap: 6px; margin-bottom: 36px; }
 .welcome .lanes-art i { display: block; height: 34px; border-radius: 17px; background: var(--surface); position: relative; }
 .welcome .lanes-art i::after { content: ''; position: absolute; top: 3px; width: 28px; height: 28px; border-radius: 50%; background: var(--c); left: var(--x); }
+
+/* escolha única em lista */
+.choice-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 54px; padding: 0 16px; text-align: left; font-weight: 500; }
+.choice-row + .choice-row { border-top: 1px solid var(--line); }
+.choice-row .grow { flex: 1; }
+.choice-row .who-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+.choice-row .radio { width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--line); flex: none; display: grid; place-items: center; }
+.choice-row[aria-checked="true"] .radio { box-shadow: inset 0 0 0 2px var(--lamp); }
+.choice-row[aria-checked="true"] .radio::after { content: ''; width: 12px; height: 12px; border-radius: 50%; background: var(--lamp); }
 
 /* convite e instalação */
 .steps { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 12px; }

@@ -438,14 +438,15 @@ function viewSettings() {
   };
   return `${topBar('', 'Ajustes')}
     <h2 class="sec">Quem usa este aparelho</h2>
-    <div class="group"><div class="field"><div class="seg full tall" role="group">${PEOPLE.map(id =>
-      `<button data-a="me" data-v="${id}" aria-pressed="${S.me === id}">${esc(pname(id))}</button>`).join('')}</div></div></div>
+    <div class="group choice" role="radiogroup" aria-label="Quem usa este aparelho">${PEOPLE.map(id =>
+      `<button class="choice-row" role="radio" aria-checked="${S.me === id}" data-a="me" data-v="${id}" style="${cvar(id)}">
+        <span class="who-dot"></span><span class="grow">${esc(pname(id))}</span><span class="radio" aria-hidden="true"></span></button>`).join('')}</div>
+    <p class="small" style="margin:8px 2px 0">Define de quem é o "Só eu" e quem aparece primeiro nos treinos.</p>
     <h2 class="sec">Sincronização</h2>
     <div class="group">${syncTxt}</div>
     <h2 class="sec">Ritmo semanal</h2>
-    <div class="group"><div class="field"><div class="seg full tall" role="group">${[2, 3, 4].map(n =>
-      `<button data-a="weekly" data-v="${n}" aria-pressed="${(s.weeklyTarget || 3) === n}">${n} treinos</button>`).join('')}</div>
-      <div class="hint" style="margin-top:8px">Treinos por semana, para os dois. Com 4, o extra é um Leve.</div></div></div>
+    <div class="group"><div class="field row"><div><div class="lbl">Treinos por semana</div><div class="hint">Vale para os dois. Com 4, o extra é um Leve.</div></div>
+      <div class="stepper"><button data-a="weekly" data-v="${Math.max(2, (s.weeklyTarget || 3) - 1)}" aria-label="Menos treinos" ${(s.weeklyTarget || 3) <= 2 ? 'disabled' : ''}>−</button><output class="num" style="min-width:44px">${s.weeklyTarget || 3}</output><button data-a="weekly" data-v="${Math.min(4, (s.weeklyTarget || 3) + 1)}" aria-label="Mais treinos" ${(s.weeklyTarget || 3) >= 4 ? 'disabled' : ''}>+</button></div></div></div>
     ${PEOPLE.map(personBlock).join('')}
     <h2 class="sec">Avisos no treino</h2>
     <div class="group">
@@ -486,12 +487,12 @@ function sheetCheckin() {
     const c = sh.c[id];
     return `<div class="block" style="${cvar(id)}">
       <div class="block-name">${esc(pname(id))}</div>
-      <div class="f" style="margin-top:14px"><span class="flabel">Completou?</span><div class="seg full">${Object.entries(DONE).map(([k, l]) =>
+      <div class="f" style="margin-top:14px"><span class="flabel">Completou?</span><div class="opts" role="radiogroup">${Object.entries(DONE).map(([k, l]) =>
         `<button data-a="ck" data-id="${id}" data-k="completed" data-v="${k}" aria-pressed="${c.completed === k}">${l}</button>`).join('')}</div></div>
-      <div class="f" style="margin-top:14px"><span class="flabel">Esforço</span><div class="effort">${[1, 2, 3, 4, 5].map(n =>
+      <div class="f" style="margin-top:14px"><span class="flabel">Esforço</span><div class="opts effort" role="radiogroup">${[1, 2, 3, 4, 5].map(n =>
         `<button data-a="ck" data-id="${id}" data-k="effort" data-v="${n}" aria-pressed="${c.effort === n}" aria-label="${EFFORT[n]}">${n}</button>`).join('')}</div>
         <div class="effort-label">${c.effort ? EFFORT[c.effort] : '1 fácil demais, 5 no limite'}</div></div>
-      <div class="f" style="margin-top:10px"><span class="flabel">Alguma dor?</span><div class="seg full">${PAIN.map((l, i) =>
+      <div class="f" style="margin-top:10px"><span class="flabel">Alguma dor?</span><div class="opts" role="radiogroup">${PAIN.map((l, i) =>
         `<button data-a="ck" data-id="${id}" data-k="pain" data-v="${i}" aria-pressed="${c.pain === i}">${l}</button>`).join('')}</div></div>
       <div class="two">
         <label class="f"><span>Distância (km, opcional)</span><input class="input num" inputmode="decimal" data-bind="c.${id}.distanceKm" value="${esc(c.distanceKm || '')}" placeholder="0,0"></label>
@@ -505,7 +506,7 @@ function sheetCheckin() {
       <label class="f"><span>Dia</span><input class="input" type="date" data-bind="date" value="${sh.date}" max="${P.ymd(today())}"></label>
       <label class="f"><span>Duração (min)</span><input class="input num" inputmode="numeric" data-bind="minutes" value="${esc(sh.minutes || '')}"></label>
     </div>
-    <div class="f" style="margin-top:14px"><span class="flabel">Quem treinou</span><div class="seg full">
+    <div class="f" style="margin-top:14px"><span class="flabel">Quem treinou</span><div class="opts" role="radiogroup">
       <button data-a="ck-who" data-v="both" aria-pressed="${sh.ids.length === 2}">Os dois</button>
       ${PEOPLE.map(id => `<button data-a="ck-who" data-v="${id}" aria-pressed="${sh.ids.length === 1 && sh.ids[0] === id}">${esc(pname(id))}</button>`).join('')}</div></div>
     <p class="small" style="margin-top:10px">Conta como o treino ${P.TYPE_NAMES[sh.plans[sh.ids[0]].type]} sugerido para hoje.</p>` : `<p class="sub" style="margin-top:6px">${P.TYPE_NAMES[sh.type]}, ${P.fmtClock(sh.durationSec)} de treino. Isso ajusta o próximo treino de cada um.</p>`}
@@ -899,7 +900,7 @@ async function obCreate() {
     await st.updatePerson('p1', { level: lv[0] }); await st.updatePerson('p2', { level: lv[1] });
     S.me = 'p1'; ls.set('lal:me', 'p1'); S.onboarding = null;
     attach(st);
-    toast(cloudEnabled ? `Pronto. Em Ajustes, mande o convite para ${names[1]}.` : 'Pronto.');
+    if (cloudEnabled) toast(`Pronto. Em Ajustes, mande o convite para ${names[1]}.`);
   } catch (e) { ob.busy = false; ob.err = friendly(e); renderOnboarding(); }
 }
 async function obJoin() {
@@ -1040,6 +1041,9 @@ function lockSafeArea() {
 
 function init() {
   lockSafeArea();
+  // Sem zoom: o iOS ignora user-scalable=no para pinça, então bloqueia o gesto aqui.
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
   const urlCode = new URLSearchParams(location.search).get('c');
   if (cloudEnabled && urlCode && urlCode !== S.code) {
