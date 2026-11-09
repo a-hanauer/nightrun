@@ -465,9 +465,9 @@ label.f > span, .f > .flabel { display: block; font-size: 13px; color: var(--mut
 .tabs.min .tab span { display: none; }
 @media (prefers-reduced-motion: reduce) { .tabs, .tab { transition: none; } }
 
-:root{--tb-vidro:rgba(23,32,51,.74);--tb-acc:var(--lamp);--tb-tinta:var(--muted);--tb-aro-hi:rgba(255,255,255,.2);--tb-aro-lo:rgba(0,0,0,.5);--tb-gota:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.07));--tb-sombra:rgba(0,0,0,.45)}
-/* vidro da barra (opção "B", 09/11/2026): aro de luz (brilho em cima, sombra fina embaixo); aba escolhida só na cor do app;
-   a gota de vidro aparece só enquanto o dedo está na barra (script "vidro da barra de abas") */
+:root{--tb-vidro:rgba(23,32,51,.74);--tb-acc:var(--lamp);--tb-tinta:var(--muted);--tb-aro-hi:rgba(255,255,255,.2);--tb-aro-lo:rgba(0,0,0,.5);--tb-gota:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.07));--tb-gota-pousa:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.03)) rgba(255,255,255,.07);--tb-sombra:rgba(0,0,0,.45)}
+/* vidro da barra (09/11/2026): aro de luz (brilho em cima, sombra fina embaixo); aba escolhida na cor do app com uma gota de
+   vidro parada atrás; com o dedo na barra a gota vira lente e segue o dedo (script "vidro da barra de abas") */
 #tabs{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;background:var(--tb-vidro);-webkit-backdrop-filter:blur(16px) saturate(170%);backdrop-filter:blur(16px) saturate(170%);border-color:transparent;box-shadow:0 10px 30px var(--tb-sombra)}
 #tabs::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;padding:1px;z-index:2;background:linear-gradient(160deg,var(--tb-aro-hi),transparent 34%,transparent 66%,var(--tb-aro-lo));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
 #tabs > :not(.tb-gota){position:relative;z-index:1}
@@ -477,7 +477,8 @@ label.f > span, .f > .flabel { display: block; font-size: 13px; color: var(--mut
 #tabs .tab[aria-current="page"]{font-weight:700}
 #tabs .tab[aria-current="page"] svg,#tabs .tab.tb-sob svg{color:var(--tb-acc)}
 #tabs .tab:active{transform:none}
-.tb-gota{position:absolute;left:0;top:4px;z-index:0;border-radius:999px;pointer-events:none;opacity:0;background:var(--tb-gota);box-shadow:0 6px 18px var(--tb-sombra),inset 0 1px 0 var(--tb-aro-hi),inset 0 0 0 .5px var(--tb-aro-lo);-webkit-backdrop-filter:blur(3px) saturate(160%) brightness(1.08);backdrop-filter:blur(3px) saturate(160%) brightness(1.08);transition:opacity .25s,transform .32s cubic-bezier(.3,1.35,.5,1)}
-.tb-gota.on{opacity:1}
+.tb-gota{position:absolute;left:0;top:4px;z-index:0;border-radius:999px;pointer-events:none;opacity:0;background:var(--tb-gota-pousa);box-shadow:inset 0 1px 0 var(--tb-aro-hi),inset 0 0 0 .5px var(--tb-aro-lo);transform-origin:center;transition:opacity .25s,transform .42s cubic-bezier(.3,1.25,.5,1),background .22s,box-shadow .22s}
+.tb-gota.pousa,.tb-gota.on{opacity:1}
+.tb-gota.on{background:var(--tb-gota);box-shadow:0 6px 18px var(--tb-sombra),inset 0 1px 0 var(--tb-aro-hi),inset 0 0 0 .5px var(--tb-aro-lo);-webkit-backdrop-filter:blur(3px) saturate(160%) brightness(1.08);backdrop-filter:blur(3px) saturate(160%) brightness(1.08)}
 #tabs.min .tb-gota{display:none}
 @media (prefers-reduced-motion: reduce){.tb-gota{transition:opacity .15s}}

@@ -1093,52 +1093,80 @@ init();
   }, true);
   window.addEventListener('hashchange', function () { poe(false); last = 0; trava = Date.now() + 450; });
 })();
-/* Vidro da barra de abas (opção "B", 09/11/2026): a aba escolhida só muda para a cor do app; enquanto o dedo está na
-   barra aparece uma gota de vidro que cresce, segue o dedo e acende a aba de baixo; ao soltar, encaixa nela e some.
-   Arrastar até outra aba e soltar troca de aba, como no iOS 26. */
+/* Vidro da barra de abas (09/11/2026): uma gota de vidro fica sob a aba escolhida (que também fica na cor do app);
+   ao trocar de aba ela escorrega até a nova. Com o dedo na barra, a gota cresce, segue o dedo e acende a aba de baixo;
+   ao soltar, encaixa nela. Arrastar até outra aba e soltar troca de aba, como no iOS 26. */
 (function () {
-  var bar = document.querySelector('#tabs'), SEL = '.tab';
+  var bar = document.querySelector('#tabs'), SEL = '.tab', CUR = '[aria-current="page"]';
   if (!bar) return;
-  var gota = null, toque = null, ignoraAte = 0;
+  var gota = null, toque = null, ignoraAte = 0, ultX = null;
   var reduz = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   function abas() { return [].filter.call(bar.querySelectorAll(SEL), function (a) { return a.offsetWidth > 0; }); }
+  function garante() {
+    if (!gota || gota.parentNode !== bar) {
+      gota = document.createElement('i'); gota.className = 'tb-gota'; gota.setAttribute('aria-hidden', 'true'); bar.appendChild(gota);
+      if (ultX != null) { gota.style.transition = 'none'; gota.style.transform = 'translateX(' + ultX + 'px)'; }
+    }
+    return gota;
+  }
   function sob(x) {
-    var l = abas(), m = null, d = 1e9;
-    l.forEach(function (a) { var r = a.getBoundingClientRect(), c = Math.abs(x - (r.left + r.width / 2)); if (c < d) { d = c; m = a; } });
+    var m = null, d = 1e9;
+    abas().forEach(function (a) { var r = a.getBoundingClientRect(), c = Math.abs(x - (r.left + r.width / 2)); if (c < d) { d = c; m = a; } });
     return m;
   }
-  function poe(x, lente) {
-    var a = sob(x); if (!a) return null;
+  function mede(a, x, lente) {
     var rb = bar.getBoundingClientRect(), ra = a.getBoundingClientRect(), w = ra.width;
     var cx = lente ? Math.max(rb.left + 4 + w / 2, Math.min(rb.right - 4 - w / 2, x)) : ra.left + w / 2;
     gota.style.width = w + 'px'; gota.style.height = ra.height + 'px'; gota.style.top = (ra.top - rb.top) + 'px';
-    gota.style.transform = 'translateX(' + (cx - rb.left - w / 2) + 'px)' + (lente ? ' scale(1.16, 1.1)' : '');
-    abas().forEach(function (b) { b.classList.toggle('tb-sob', b === a); });
+    ultX = cx - rb.left - w / 2;
+    gota.style.transform = 'translateX(' + ultX + 'px)' + (lente ? ' scale(1.16, 1.1)' : '');
+  }
+  // gota parada sob a aba escolhida
+  var pend = 0;
+  function pousa(anima) {
+    if (toque || bar.hidden || bar.classList.contains('min')) return;
+    var a = bar.querySelector(SEL + CUR); garante();
+    if (!a || !a.offsetWidth) { gota.classList.remove('pousa'); return; }
+    if (!anima || reduz) gota.style.transition = 'none';
+    mede(a, 0, false); gota.classList.add('pousa');
+    if (!anima || reduz) { void gota.offsetWidth; gota.style.transition = ''; }
+  }
+  function agenda(anima) { cancelAnimationFrame(pend); pend = requestAnimationFrame(function () { pousa(anima); }); }
+  new MutationObserver(function (ms) {
+    if (ms.every(function (m) { return m.target === gota; })) return;
+    agenda(true);
+  }).observe(bar, { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-current', 'class', 'hidden'] });
+  bar.addEventListener('transitionend', function (e) { if (e.target === bar) agenda(false); });   // depois de encolher/abrir
+  window.addEventListener('resize', function () { agenda(false); });
+  window.addEventListener('pageshow', function () { agenda(false); });
+  agenda(false);
+  // dedo na barra: a gota vira lente e segue o dedo
+  function poe(x, lente) {
+    var a = sob(x); if (!a) return null;
+    mede(a, x, lente);
+    abas().forEach(function (b) { b.classList.toggle('tb-sob', lente && b === a); });
     return a;
   }
   bar.addEventListener('pointerdown', function (e) {
     if (bar.classList.contains('min') || (e.pointerType === 'mouse' && e.button !== 0)) return;
-    if (!gota || gota.parentNode !== bar) { gota = document.createElement('i'); gota.className = 'tb-gota'; gota.setAttribute('aria-hidden', 'true'); bar.appendChild(gota); }
-    toque = { x0: e.clientX, mexeu: false, a0: sob(e.clientX) };
-    gota.style.transition = 'none'; poe(e.clientX, true);
-    void gota.offsetWidth; gota.style.transition = ''; gota.classList.add('on');
+    garante();
+    toque = { x0: e.clientX, mexeu: false };
+    gota.classList.add('on'); poe(e.clientX, true);
   });
   bar.addEventListener('pointermove', function (e) {
     if (!toque) return;
     if (Math.abs(e.clientX - toque.x0) > 8) toque.mexeu = true;
-    gota.style.transition = 'opacity .22s'; poe(e.clientX, true);
+    gota.style.transition = 'opacity .22s, background .22s, box-shadow .22s'; poe(e.clientX, true);
   });
   function fim(e, cancela) {
     if (!toque) return;
     var t = toque; toque = null;
-    gota.style.transition = reduz ? 'opacity .15s' : '';
-    var a = poe(cancela ? t.x0 : e.clientX, false);
+    gota.style.transition = '';
+    var a = cancela ? null : sob(e.clientX);
     gota.classList.remove('on');
     abas().forEach(function (b) { b.classList.remove('tb-sob'); });
-    if (!cancela && t.mexeu && a) {               // arrastou até outra aba: troca para ela
-      ignoraAte = Date.now() + 600;
-      if (!a.matches('[aria-current="page"]')) a.click();
-    }
+    if (a && !a.matches(CUR)) { mede(a, 0, false); if (t.mexeu) { ignoraAte = Date.now() + 350; a.click(); } }   // um toque simples segue pelo clique normal
+    else agenda(true);
   }
   bar.addEventListener('dragstart', function (e) { e.preventDefault(); });   // links não viram arrasto do navegador
   bar.addEventListener('pointerup', function (e) { fim(e, false); });
