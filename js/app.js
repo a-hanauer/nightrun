@@ -1077,10 +1077,10 @@ init();
     return window.scrollY || document.documentElement.scrollTop || 0;
   }
   document.addEventListener('scroll', function (e) {
-    if (Date.now() < trava || bar.hidden) return;
     var t = e && e.target;
     if (t && t.nodeType === 1 && t.closest && t.closest('[role="dialog"], .sheet, .sheet-bg, .cook, .modal')) return;   // folhas por cima não mexem na barra
     var y = topo(e);
+    if (Date.now() < trava || bar.hidden) { last = y; return; }
     if (y < 30) poe(false);
     else if (y - last > 6) poe(true);
     else if (last - y > 6) poe(false);
