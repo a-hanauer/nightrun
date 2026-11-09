@@ -2,7 +2,7 @@ import * as P from './plan.js';
 import { openStore, cloudEnabled, newCoupleCode, newPerson, hasLocalData } from './store.js';
 import { Workout, loadAlerts, saveAlerts, unlockAudio, beep, say, locate, kindWord } from './timer.js';
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const $ = s => document.querySelector(s);
 const app = $('#app'), tabsEl = $('#tabs'), sheetEl = $('#sheet'), timerEl = $('#timer'), toastEl = $('#toast');
 
@@ -59,8 +59,8 @@ const ICON = {
   today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.5" cy="4.5" r="2"/><path d="M8 21l3-6 3 2v4M6 12l3-3.5 4 1 2.5 3.5 3 1"/></svg>',
   plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h3M4 12h3M4 18h3M10 6h10M10 12h10M10 18h6"/></svg>',
   race: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h13l-2.5 4L18 12H5"/></svg>',
-  us: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 9h18M3 15h18"/><circle cx="9" cy="9" r="2.2" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="2.2" fill="currentColor" stroke="none"/></svg>',
-  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>',
+  us: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="8.5" cy="8" r="3"/><circle cx="16.5" cy="9" r="2.5"/><path d="M3 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5M14.5 14.6c.6-.2 1.3-.3 2-.3 2.6 0 4.5 1.8 4.5 4.5"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
   pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>',
   back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
@@ -132,17 +132,15 @@ function render() {
 }
 
 function renderTabs() {
-  const items = [['hoje', 'Hoje', ICON.today], ['plano', 'Plano', ICON.plan], ['provas', 'Provas', ICON.race], ['nos', 'Nós', ICON.us]];
+  const items = [['hoje', 'Hoje', ICON.today], ['plano', 'Plano', ICON.plan], ['provas', 'Provas', ICON.race], ['nos', 'Nós', ICON.us], ['ajustes', 'Ajustes', ICON.gear]];
   tabsEl.hidden = false;
   tabsEl.innerHTML = `<div class="wrap">${items.map(([r, l, i]) =>
     `<button class="tab" data-a="route" data-r="${r}" ${S.route === r ? 'aria-current="page"' : ''}>${i}<span>${l}</span></button>`).join('')}</div>`;
 }
 
-function topBar(kicker, title, { gear = false, back = false } = {}) {
+function topBar(kicker, title) {
   return `<header class="top">
-    ${back ? `<button class="icon-btn" data-a="route" data-r="hoje" aria-label="Voltar">${ICON.back}</button>` : ''}
     <div style="flex:1;min-width:0">${kicker ? `<p class="kicker">${kicker}</p>` : ''}<h1>${title}</h1></div>
-    ${gear ? `<button class="icon-btn" data-a="route" data-r="ajustes" aria-label="Ajustes">${ICON.gear}</button>` : ''}
   </header>`;
 }
 
@@ -214,22 +212,24 @@ function viewToday() {
   else if (mine.some(s => s.date === yesterday) && type !== 'race') notes.push(`<div class="note"><span class="dot"></span><div><b>Ontem teve treino.</b> Descansar hoje rende mais. Se quiser se mexer, faça o leve.</div></div>`);
   if (participants().some(id => person(id).painFlag)) notes.push(`<div class="note warn"><span class="dot"></span><div><b>Dor no último treino.</b> Se ainda incomoda, descanse. Dor que piora correndo é sinal para parar.</div></div>`);
 
+  const suggested = nextFor(S.me).type;
   const typeChoices = type === 'race' || type === 'taper' ? [] : ['base', 'long', 'easy'];
   const isRace = type === 'race';
   return `
-    ${topBar(WD_LONG[today().getDay()], `${today().getDate()} de ${MON_LONG[today().getMonth()]}`, { gear: true })}
+    ${topBar(WD_LONG[today().getDay()], `${today().getDate()} de ${MON_LONG[today().getMonth()]}`)}
     ${trackHero(ev)}
     ${notes.join('')}
     <section class="card session">
-      <div class="session-head">
-        <div class="seg" role="group" aria-label="Quem treina">
+      <div class="session-controls">
+        <div class="seg full" role="group" aria-label="Quem treina">
           <button data-a="mode" data-v="together" aria-pressed="${S.mode === 'together'}">Juntos</button>
           <button data-a="mode" data-v="solo" aria-pressed="${S.mode === 'solo'}">Só eu</button>
         </div>
-        ${typeChoices.length ? `<div class="chips">${typeChoices.filter(k => k !== type).map(k => `<button class="chip" data-a="force" data-v="${k}">${P.TYPE_NAMES[k]}</button>`).join('')}${S.forceType ? `<button class="chip" data-a="force" data-v="">Sugerido</button>` : ''}</div>` : ''}
+        ${typeChoices.length ? `<div class="seg full" role="group" aria-label="Tipo de treino">${typeChoices.map(k =>
+          `<button data-a="force" data-v="${k === suggested ? '' : k}" aria-pressed="${k === type}">${P.TYPE_NAMES[k]}${k === suggested ? '<i class="sugg" aria-label="sugerido"></i>' : ''}</button>`).join('')}</div>` : ''}
       </div>
       <h2 class="session-type">${P.TYPE_NAMES[type]}</h2>
-      <p class="session-hint">${P.TYPE_HINTS[type]}</p>
+      <p class="session-hint">${P.TYPE_HINTS[type]} ${typeChoices.length ? (type === suggested ? '<span class="sugg-txt">Sugerido para hoje.</span>' : `<span class="sugg-txt">A sugestão era ${P.TYPE_NAMES[suggested]}.</span>`) : ''}</p>
       ${Object.entries(plans).map(([id, pl]) => whoRow(id, pl)).join('')}
       <div class="legend"><span style="--k:var(--lamp)">Corre</span><span style="--k:var(--walk)">Caminha</span><span style="--k:var(--calm)">Aquece e desaquece</span></div>
       <div class="actions">
@@ -252,11 +252,11 @@ function viewPlan() {
       `<button data-a="planwho" data-v="${x}" aria-pressed="${x === id}">${esc(pname(x))}</button>`).join('')}</div>`;
   const explain = `<details class="explain"><summary>Como o plano se adapta</summary><ul>
     <li>Cada degrau é uma proporção corre:caminha. Vocês sobem um degrau por vez, sempre no treino Base.</li>
-    <li>Depois de cada treino, cada um diz se completou e como foi o esforço. "Fácil demais" conta em dobro; "Puxado" segura o nível; "No limite" ou "Não deu" desce um degrau.</li>
-    <li>Quanto mais perto a prova, menos treinos ficam em cada degrau, até no máximo um degrau por treino. O plano nunca acelera além disso.</li>
+    <li>Depois de cada treino, cada um diz se completou e como foi o esforço. "Fácil demais" conta em dobro; "Puxado" segura o degrau; "No limite" ou "Não deu" desce um degrau.</li>
+    <li>Quanto mais perto a prova, menos treinos ficam em cada degrau, mas sempre pelo menos dois: um para subir e outro para confirmar. Se não der tempo, o plano avisa em vez de forçar.</li>
     <li>O Longão usa o mesmo degrau com mais tempo, para aguentar a distância da prova.</li>
     <li>Mais de 10 dias parado volta um degrau; mais de 21, dois.</li>
-    <li>Dor que incomodou segura o nível e sugere descanso.</li>
+    <li>Dor que incomodou segura o degrau e sugere descanso.</li>
     <li>Nos 6 dias antes da prova entra o polimento: dois treinos curtos para chegar descansado.</li>
     <li>Quando os dois treinam juntos, cada um segue a própria proporção pelo mesmo tempo total, e a voz chama cada um pelo nome.</li>
   </ul></details>`;
@@ -298,7 +298,7 @@ function viewPlan() {
     <div class="goal-grid">
       <div class="stat"><div class="v">${P.ratioLabel(p.level)}</div><div class="l">Degrau atual</div></div>
       <div class="stat"><div class="v" style="color:var(--lamp)">${P.ratioLabel(target)}</div><div class="l">Meta para a prova</div></div>
-      <div class="stat wide"><div class="v num">${Math.round(reachEst)} min</div><div class="l">Tempo estimado nos ${String(km).replace('.', ',')} km, ${P.ratioWords(proj.reachLevel)}</div></div>
+      <div class="stat wide"><div class="v num">${Math.round(reachEst)} min</div><div class="l">Previsão para os ${String(km).replace('.', ',')} km no dia da prova, ${P.ratioWords(proj.reachLevel)}</div></div>
     </div>
     ${short ? `<div class="note warn" style="margin-top:10px"><span class="dot"></span><div><b>Prazo apertado.</b> Com ${ctx.weeklyTarget} treinos por semana, a projeção chega em ${P.ratioLabel(proj.reachLevel)}, não em ${P.ratioLabel(target)}. Dá para completar a prova nessa estratégia; a meta completa fica para a próxima.</div></div>` : ''}
     <p class="small" style="margin:12px 2px 0">Projeção considerando que todo treino sai na medida. Os dias são sugestões: treine quando der, sem dias seguidos.</p>
@@ -327,7 +327,7 @@ function viewRaces() {
         ${ev.location ? `<div style="grid-column:1/-1"><span>Local</span>${esc(ev.location)}</div>` : ''}
         ${ev.notes ? `<div style="grid-column:1/-1"><span>Observações</span>${esc(ev.notes)}</div>` : ''}
       </div>
-      <div class="strategy"><p class="small" style="margin:0 0 10px">Estratégia de prova no degrau de hoje</p>
+      <div class="strategy"><p class="small" style="margin:0 0 10px">Se a prova fosse hoje</p>
         ${PEOPLE.map(id => {
           const p = person(id);
           const est = P.estimateRaceMin(p.level, Number(ev.distanceKm) || 5, p);
@@ -405,8 +405,6 @@ function viewUs() {
       <div class="stat"><div class="v num">${(totalSec / 3600).toFixed(1).replace('.', ',')} h</div><div class="l">Em movimento, somando tudo</div></div>
       <div class="stat"><div class="v num">${km ? km.toFixed(1).replace('.', ',') : '–'}</div><div class="l">Km registrados pelos dois</div></div>
     </div>
-    <h2 class="sec">Esta semana</h2>
-    ${weekBlock()}
     <h2 class="sec">Últimas 8 semanas</h2>
     <div class="card"><div class="cal">${cells}</div>
       <div class="cal-legend">${PEOPLE.map(id => `<span style="${cvar(id)}">${esc(pname(id))}</span>`).join('')}<span style="--c:var(--text)">Prova</span></div></div>
@@ -438,8 +436,8 @@ function viewSettings() {
       </div>
     </div>`;
   };
-  return `${topBar('', 'Ajustes', { back: true })}
-    <h2 class="sec">Este iPhone</h2>
+  return `${topBar('', 'Ajustes')}
+    <h2 class="sec">Quem usa este aparelho</h2>
     <div class="group"><div class="field"><div class="seg full tall" role="group">${PEOPLE.map(id =>
       `<button data-a="me" data-v="${id}" aria-pressed="${S.me === id}">${esc(pname(id))}</button>`).join('')}</div></div></div>
     <h2 class="sec">Sincronização</h2>
@@ -563,12 +561,12 @@ function sheetSession() {
   const d = P.parseYmd(s.date);
   const ids = PEOPLE.filter(id => s.checkin?.[id]);
   return `<div class="s-head"><h2>${P.TYPE_NAMES[s.type] || 'Treino'}</h2><button class="close" data-a="sheet-close">Fechar</button></div>
-    <p class="sub" style="margin-top:6px">${dLong(d)}, ${P.fmtClock(s.durationSec || 0)}</p>
+    <p class="sub" style="margin-top:6px">${dLong(d)}. ${Math.round((s.durationSec || 0) / 60)} min de treino.</p>
     ${ids.map(id => {
       const c = s.checkin[id], pl = s.plans?.[id], r = s.results?.[id];
       return `<div class="block" style="${cvar(id)};margin-top:18px"><div class="block-name">${esc(pname(id))}</div>
         <div class="facts" style="margin-bottom:0">
-          <div><span>Proporção</span>${pl ? (pl.runSec ? P.ratioLabel(pl.level) : 'Contínuo') : '–'}</div>
+          <div><span>Degrau</span>${pl ? (pl.runSec ? P.ratioLabel(pl.level) : 'Contínuo') : '–'}</div>
           <div><span>Completou</span>${DONE[c.completed]}</div>
           <div><span>Esforço</span>${EFFORT[c.effort]}</div>
           <div><span>Dor</span>${PAIN[c.pain]}</div>
@@ -578,7 +576,7 @@ function sheetSession() {
         </div></div>`;
     }).join('')}
     <div class="actions"><button class="btn danger" data-a="session-del">${S.sheet.armDel ? 'Toque de novo para excluir' : 'Excluir treino'}</button>
-    <p class="small" style="text-align:center;margin:4px 0 0">Se for o último treino, o nível volta ao que era antes dele.</p></div>`;
+    <p class="small" style="text-align:center;margin:4px 0 0">Se for o último treino, o degrau volta ao que era antes dele.</p></div>`;
 }
 
 function sheetConnect() {
@@ -939,7 +937,7 @@ function renderOnboarding() {
   const ob = S.onboarding || { step: 'start' };
   const err = ob.err ? `<p class="small" style="color:var(--danger);margin-top:12px">${esc(ob.err)}</p>` : '';
   const busy = ob.busy ? 'disabled' : '';
-  const art = `<div class="lanes-art" aria-hidden="true"><i style="--c:${COLORS.sky};--x:58%"></i><i style="--c:${COLORS.rose};--x:64%"></i></div>`;
+  const art = `<img class="brand-icon" src="icons/icon-192.png" alt="" width="72" height="72">`;
   if (ob.step === 'invite') {
     app.innerHTML = `<section class="welcome">${art}
       <h1 class="wordmark" style="font-size:48px">Você foi<span class="l2">convidado</span></h1>
@@ -1027,7 +1025,21 @@ async function boot() {
   }
 }
 
+// Trava a área segura de baixo no maior valor visto, para a barra de abas não mudar de altura.
+function lockSafeArea() {
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom);visibility:hidden';
+  document.body.appendChild(probe);
+  let max = -1;
+  const read = () => {
+    const v = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
+    if (v > max) { max = v; document.documentElement.style.setProperty('--sab-lock', `${v}px`); }
+  };
+  read(); window.addEventListener('resize', read); window.visualViewport?.addEventListener('resize', read);
+}
+
 function init() {
+  lockSafeArea();
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
   const urlCode = new URLSearchParams(location.search).get('c');
   if (cloudEnabled && urlCode && urlCode !== S.code) {

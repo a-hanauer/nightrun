@@ -43,11 +43,11 @@ export const TYPE_NAMES = {
   base: 'Base', long: 'Longão', easy: 'Leve', taper: 'Polimento', race: 'Prova', free: 'Livre',
 };
 export const TYPE_HINTS = {
-  base: 'Intervalos no seu nível. É aqui que o plano evolui.',
+  base: 'Intervalos no seu degrau. É aqui que o plano evolui.',
   long: 'Mesmo ritmo, mais tempo. Constrói resistência para a distância da prova.',
   easy: 'Mais curto e mais leve. Para recuperar sem parar.',
   taper: 'Semana da prova: treino curto para chegar descansado.',
-  race: 'Estratégia de prova no seu nível atual.',
+  race: 'Estratégia de prova no seu degrau atual.',
   free: 'Treino feito por conta própria.',
 };
 
@@ -142,7 +142,7 @@ export function buildSessionsLeft(today, event, weeklyTarget, weekCount) {
 export function holdFor(level, target, N) {
   if (!target || level >= target) return Infinity;
   if (N === Infinity) return 2;
-  return Math.max(1, Math.min(3, Math.floor((N - 1) / (target - level))));
+  return Math.max(2, Math.min(3, Math.floor((N - 1) / (target - level))));
 }
 
 // ---------- próxima sessão ----------
@@ -175,7 +175,7 @@ export function nextSession(p, ctx) {
 
   let level = base, attempt = false, mainSec;
   if (type === 'base') {
-    if (p.painFlag) notes.push('Teve dor no último treino: mantendo o nível.');
+    if (p.painFlag) notes.push('Teve dor no último treino: mantendo o degrau.');
     else if (base < (target ?? MAX_LEVEL) && (p.streak || 0) >= h) {
       level = base + 1; attempt = true; notes.push(`Novo degrau: ${ratioLabel(level)}.`);
     }
@@ -255,8 +255,8 @@ export function applyCheckin(p, plan, c) {
   painFlag = c.pain === 2;
 
   if (!counts) {
-    msg = painFlag ? 'Dor registrada. Próximo treino segura o nível.' : 'Registrado. Nível mantido.';
-    if (c.completed === 'no' && plan.type !== 'race') { streak = 0; msg = 'Não deu hoje. Próximo treino segura o nível.'; }
+    msg = painFlag ? 'Dor registrada. O próximo treino segura o degrau.' : 'Registrado. Degrau mantido.';
+    if (c.completed === 'no' && plan.type !== 'race') { streak = 0; msg = 'Não deu hoje. O próximo treino segura o degrau.'; }
     return { after: { level, streak, painFlag }, before, msg };
   }
 
@@ -264,7 +264,7 @@ export function applyCheckin(p, plan, c) {
     streak = 0;
     if (c.completed === 'no') level = Math.max(1, plan.level - 1);
     else level = Math.min(level, plan.level);
-    msg = 'Dor registrada: o plano segura o nível. Se persistir, descanse alguns dias.';
+    msg = 'Dor registrada: o plano segura o degrau. Se persistir, descanse alguns dias.';
   } else if (plan.attempt) {
     if (ok && c.effort <= 3) { level = plan.level; streak = smooth ? 2 : 1; msg = `Degrau conquistado: ${ratioLabel(level)}.`; }
     else if (ok) { level = plan.level; streak = 0; msg = `Degrau feito, mas puxado. Repete ${ratioLabel(level)} antes de subir.`; }
@@ -278,7 +278,7 @@ export function applyCheckin(p, plan, c) {
       msg = smooth ? 'Fácil. Conta em dobro para o próximo degrau.' : 'Na medida. Um passo mais perto do próximo degrau.';
     } else {
       level = plan.level;
-      msg = 'Puxado. Mantém o nível até ficar confortável.';
+      msg = 'Puxado. Mantém o degrau até ficar confortável.';
     }
   }
   return { after: { level, streak, painFlag }, before, msg };
