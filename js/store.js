@@ -121,8 +121,15 @@ async function openCloud(code, create, names) {
   });
 
   Object.assign(api, {
-    async updatePerson(id, patch) { await fs.setDoc(root, { people: { [id]: patch } }, { merge: true }); },
-    async updateSettings(patch) { await fs.setDoc(root, { settings: patch }, { merge: true }); },
+    // Atualiza a tela na hora e grava em seguida (o Firestore confirma depois).
+    async updatePerson(id, patch) {
+      data.people[id] = { ...data.people[id], ...patch }; ev.emit(data);
+      await fs.setDoc(root, { people: { [id]: patch } }, { merge: true });
+    },
+    async updateSettings(patch) {
+      data.settings = { ...data.settings, ...patch }; ev.emit(data);
+      await fs.setDoc(root, { settings: patch }, { merge: true });
+    },
     async saveEvent(e) { await fs.setDoc(fs.doc(evCol, e.id), e); },
     async deleteEvent(id) { await fs.deleteDoc(fs.doc(evCol, id)); },
     async saveSession(s) { await fs.setDoc(fs.doc(seCol, s.id), s); },

@@ -422,33 +422,42 @@ function viewSettings() {
        <div class="field"><button class="btn quiet" data-a="invite">Copiar link de convite</button><div class="hint" style="margin-top:8px">Mande para ${esc(pname(other(S.me)))}. Abrindo o link no iPhone, o app já entra no mesmo código.</div></div>`
     : `<div class="field"><div class="lbl">Só neste iPhone</div><div class="hint">${cloudEnabled ? 'Sem código do casal. ' : 'O Firebase ainda não foi configurado (veja o README). '}Os dados não sincronizam com ${esc(pname(other(S.me)))}. Exporte de vez em quando para não perder nada.</div></div>
        ${cloudEnabled ? `<div class="field"><button class="btn quiet" data-a="connect">Conectar com ${esc(pname(other(S.me)))}</button></div>` : ''}`;
-  const personBlock = id => {
-    const p = person(id);
-    return `<h2 class="sec">${esc(p.name)}</h2><div class="group" style="${cvar(id)}">
-      <div class="field"><label class="f" style="margin:0"><span>Nome</span><input class="input" data-a="pname" data-id="${id}" value="${esc(p.name)}" maxlength="24" autocomplete="off"></label></div>
-      <div class="field row"><div><div class="lbl">Degrau atual</div><div class="hint">${P.ratioWords(p.level)}</div></div>
-        <div class="stepper"><button data-a="lvl" data-id="${id}" data-v="-1" aria-label="Descer degrau">−</button><output class="num">${P.ratioLabel(p.level)}</output><button data-a="lvl" data-id="${id}" data-v="1" aria-label="Subir degrau">+</button></div></div>
-      <div class="field"><div class="lbl">Cor</div><div class="swatches">${Object.entries(COLORS).map(([k, v]) =>
-        `<button style="--c:${v}" data-a="color" data-id="${id}" data-v="${k}" aria-pressed="${p.color === k}" aria-label="${k}"></button>`).join('')}</div></div>
-      <div class="field two">
-        <label class="f" style="margin:0"><span>Ritmo correndo leve (min/km)</span><input class="input num" inputmode="decimal" data-a="pace" data-id="${id}" data-k="runPace" value="${String(p.runPace).replace('.', ',')}"></label>
-        <label class="f" style="margin:0"><span>Ritmo caminhando (min/km)</span><input class="input num" inputmode="decimal" data-a="pace" data-id="${id}" data-k="walkPace" value="${String(p.walkPace).replace('.', ',')}"></label>
-      </div>
-    </div>`;
-  };
+  const me = S.me, p = person(me), mate = other(me);
+  const COLOR_NAMES = { sky: 'Azul', rose: 'Rosa', violet: 'Lilás', sand: 'Areia', ice: 'Gelo' };
+  const wt = s.weeklyTarget || 3;
   return `${topBar('', 'Ajustes')}
     <h2 class="sec">Quem usa este aparelho</h2>
     <div class="group choice" role="radiogroup" aria-label="Quem usa este aparelho">${PEOPLE.map(id =>
-      `<button class="choice-row" role="radio" aria-checked="${S.me === id}" data-a="me" data-v="${id}" style="${cvar(id)}">
+      `<button class="choice-row" role="radio" aria-checked="${me === id}" data-a="me" data-v="${id}" style="${cvar(id)}">
         <span class="who-dot"></span><span class="grow">${esc(pname(id))}</span><span class="radio" aria-hidden="true"></span></button>`).join('')}</div>
-    <p class="small" style="margin:8px 2px 0">Define de quem é o "Só eu" e quem aparece primeiro nos treinos.</p>
-    <h2 class="sec">Sincronização</h2>
-    <div class="group">${syncTxt}</div>
-    <h2 class="sec">Ritmo semanal</h2>
-    <div class="group"><div class="field row"><div><div class="lbl">Treinos por semana</div><div class="hint">Vale para os dois. Com 4, o extra é um Leve.</div></div>
-      <div class="stepper"><button data-a="weekly" data-v="${Math.max(2, (s.weeklyTarget || 3) - 1)}" aria-label="Menos treinos" ${(s.weeklyTarget || 3) <= 2 ? 'disabled' : ''}>−</button><output class="num" style="min-width:44px">${s.weeklyTarget || 3}</output><button data-a="weekly" data-v="${Math.min(4, (s.weeklyTarget || 3) + 1)}" aria-label="Mais treinos" ${(s.weeklyTarget || 3) >= 4 ? 'disabled' : ''}>+</button></div></div></div>
-    ${PEOPLE.map(personBlock).join('')}
+    <p class="small" style="margin:8px 2px 0">As configurações abaixo são de quem estiver marcado aqui.</p>
+
+    <h2 class="sec">Seu perfil</h2>
+    <div class="group" style="${cvar(me)}">
+      <div class="field"><label class="f" style="margin:0"><span>Nome</span><input class="input" data-a="pname" data-id="${me}" value="${esc(p.name)}" maxlength="24" autocomplete="off"></label></div>
+      <div class="field"><div class="lbl">Sua cor</div><div class="hint">Aparece na pista, no calendário e nos treinos.</div>
+        <div class="swatches" role="radiogroup" aria-label="Sua cor">${Object.entries(COLORS).map(([k, v]) => {
+          const taken = person(mate)?.color === k;
+          return `<button class="swatch" role="radio" style="--c:${v}" data-a="color" data-id="${me}" data-v="${k}" aria-checked="${p.color === k}" aria-label="${COLOR_NAMES[k]}${taken ? `, usada por ${esc(pname(mate))}` : ''}" ${taken ? 'disabled' : ''}><i></i></button>`;
+        }).join('')}</div></div>
+      <div class="field row"><div><div class="lbl">Degrau atual</div><div class="hint">${P.ratioWords(p.level)}</div></div>
+        <div class="stepper"><button data-a="lvl" data-id="${me}" data-v="-1" aria-label="Descer degrau" ${p.level <= 1 ? 'disabled' : ''}>−</button><output class="num">${P.ratioLabel(p.level)}</output><button data-a="lvl" data-id="${me}" data-v="1" aria-label="Subir degrau" ${p.level >= P.MAX_LEVEL ? 'disabled' : ''}>+</button></div></div>
+      <div class="field two">
+        <label class="f" style="margin:0"><span>Ritmo correndo leve (min/km)</span><input class="input num" inputmode="decimal" data-a="pace" data-id="${me}" data-k="runPace" value="${String(p.runPace).replace('.', ',')}"></label>
+        <label class="f" style="margin:0"><span>Ritmo caminhando (min/km)</span><input class="input num" inputmode="decimal" data-a="pace" data-id="${me}" data-k="walkPace" value="${String(p.walkPace).replace('.', ',')}"></label>
+      </div>
+      <div class="field"><div class="hint">Os ritmos servem só para estimar o tempo de prova. O degrau muda sozinho com os check-ins; ajuste aqui só se o plano estiver fácil ou difícil demais.</div></div>
+    </div>
+
+    <h2 class="sec">Dupla</h2>
+    <div class="group">
+      <div class="field row"><div><div class="lbl">Treinos por semana</div><div class="hint">Vale para os dois. Com 4, o extra é um Leve.</div></div>
+        <div class="stepper"><button data-a="weekly" data-v="${Math.max(2, wt - 1)}" aria-label="Menos treinos" ${wt <= 2 ? 'disabled' : ''}>−</button><output class="num" style="min-width:44px">${wt}</output><button data-a="weekly" data-v="${Math.min(4, wt + 1)}" aria-label="Mais treinos" ${wt >= 4 ? 'disabled' : ''}>+</button></div></div>
+      ${syncTxt}
+    </div>
+
     <h2 class="sec">Avisos no treino</h2>
+    <p class="small" style="margin:-4px 2px 10px">Valem só para este aparelho.</p>
     <div class="group">
       ${tog('voice', 'Voz', 'Fala a troca de fase. Com fone, toca por cima da música.')}
       ${tog('beep', 'Bipe', 'Dois bipes para correr, um para caminhar.')}
