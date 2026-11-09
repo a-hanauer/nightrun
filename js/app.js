@@ -64,6 +64,7 @@ const ICON = {
   pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>',
   back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  watch: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 6l.6-3h4.8l.6 3M9 18l.6 3h4.8l.6-3M12 9.5V12l1.5 1"/></svg>',
   chev: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>',
 };
 
@@ -184,6 +185,8 @@ function whoRow(id, plan) {
       <div class="mins num">${Math.round(P.totalSec(segs) / 60)}<small>min</small></div>
     </div>
     ${strip(segs)}
+    ${person(id).watch ? (() => { const r = P.watchRecipe(plan); const saved = (person(id).watchSaved || []).includes(r.key);
+      return `<div class="watch-line">${ICON.watch}<span>${esc(r.name)}</span>${saved ? '<span class="badge">no relógio</span>' : '<span class="badge new">montar</span>'}</div>`; })() : ''}
     ${flags.map(f => `<div class="flag">${esc(f)}</div>`).join('')}
   </div>`;
 }
@@ -233,8 +236,12 @@ function viewToday() {
       ${Object.entries(plans).map(([id, pl]) => whoRow(id, pl)).join('')}
       <div class="legend"><span style="--k:var(--lamp)">Corre</span><span style="--k:var(--walk)">Caminha</span><span style="--k:var(--calm)">Aquece e desaquece</span></div>
       <div class="actions">
+        ${person(S.me).watch ? `
+        <button class="btn" data-a="watch">Treinar com o Apple Watch</button>
+        <button class="btn quiet" data-a="log" style="margin-top:8px">Registrar treino feito</button>
+        <button class="btn ghost" data-a="start">Usar o cronômetro do app</button>` : `
         <button class="btn" data-a="start">${isRace ? 'Começar cronômetro de prova' : 'Começar treino'}</button>
-        <button class="btn ghost" data-a="log">Registrar treino feito sem o app</button>
+        <button class="btn ghost" data-a="log">Registrar treino feito sem o app</button>`}
       </div>
     </section>
     <h2 class="sec">Esta semana</h2>
@@ -442,6 +449,8 @@ function viewSettings() {
         }).join('')}</div></div>
       <div class="field row"><div><div class="lbl">Degrau atual</div><div class="hint">${P.ratioWords(p.level)}</div></div>
         <div class="stepper"><button data-a="lvl" data-id="${me}" data-v="-1" aria-label="Descer degrau" ${p.level <= 1 ? 'disabled' : ''}>−</button><output class="num">${P.ratioLabel(p.level)}</output><button data-a="lvl" data-id="${me}" data-v="1" aria-label="Subir degrau" ${p.level >= P.MAX_LEVEL ? 'disabled' : ''}>+</button></div></div>
+      <div class="field row"><div><div class="lbl">Treino pelo Apple Watch</div><div class="hint">O app mostra como montar cada treino no app Exercício do relógio, que funciona com o iPhone travado e salva no Saúde.</div></div>
+        <label class="switch"><input type="checkbox" data-a="watch-toggle" ${p.watch ? 'checked' : ''} aria-label="Treino pelo Apple Watch"><span></span></label></div>
       <div class="field two">
         <label class="f" style="margin:0"><span>Ritmo correndo leve (min/km)</span><input class="input num" inputmode="decimal" data-a="pace" data-id="${me}" data-k="runPace" value="${String(p.runPace).replace('.', ',')}"></label>
         <label class="f" style="margin:0"><span>Ritmo caminhando (min/km)</span><input class="input num" inputmode="decimal" data-a="pace" data-id="${me}" data-k="walkPace" value="${String(p.walkPace).replace('.', ',')}"></label>
@@ -483,7 +492,7 @@ function openSheet(sh) { S.sheet = sh; renderSheet(true); }
 function closeSheet() { S.sheet = null; sheetEl.hidden = true; sheetEl.innerHTML = ''; }
 function renderSheet(enter = false) {
   const sh = S.sheet; if (!sh) return closeSheet();
-  const body = { checkin: sheetCheckin, result: sheetSaved, event: sheetEvent, raceResult: sheetRaceResult, session: sheetSession, connect: sheetConnect }[sh.kind]();
+  const body = { watch: sheetWatch, checkin: sheetCheckin, result: sheetSaved, event: sheetEvent, raceResult: sheetRaceResult, session: sheetSession, connect: sheetConnect }[sh.kind]();
   const scroll = sheetEl.querySelector('.sheet')?.scrollTop || 0;
   sheetEl.hidden = false;
   sheetEl.innerHTML = `<div class="sheet${enter ? ' enter' : ''}" role="dialog" aria-modal="true"><div class="grab"></div>${body}</div>`;
@@ -521,6 +530,41 @@ function sheetCheckin() {
     <p class="small" style="margin-top:10px">Conta como o treino ${P.TYPE_NAMES[sh.plans[sh.ids[0]].type]} sugerido para hoje.</p>` : `<p class="sub" style="margin-top:6px">${P.TYPE_NAMES[sh.type]}, ${P.fmtClock(sh.durationSec)} de treino. Isso ajusta o próximo treino de cada um.</p>`}
     <div style="margin-top:6px">${blocks}</div>
     <div class="actions"><button class="btn" data-a="ck-save" ${ready ? '' : 'disabled'}>Salvar treino</button></div>`;
+}
+
+function sheetWatch() {
+  const plans = currentPlans();
+  const mm = sec => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  const row = (label, val) => `<div class="w-row"><span>${label}</span><b class="num">${val}</b></div>`;
+  const blocks = Object.entries(plans).map(([id, pl]) => {
+    if (!person(id).watch) return `<div class="block" style="${cvar(id)}"><div class="block-name">${esc(pname(id))}</div>
+      <p class="sub" style="margin-top:8px">Sem Apple Watch: segue pelo cronômetro do app. Para usar o relógio, ative em Ajustes no aparelho de ${esc(pname(id))}.</p></div>`;
+    const r = P.watchRecipe(pl), saved = (person(id).watchSaved || []).includes(r.key);
+    return `<div class="block" style="${cvar(id)}">
+      <div class="block-name">${esc(pname(id))}</div>
+      <div class="w-card">
+        <div class="w-name">${esc(r.name)}</div>
+        ${r.warmSec ? row('Aquecimento', `Tempo ${mm(r.warmSec)}`) : ''}
+        ${r.continuous ? row('Treino', `Tempo ${mm(r.runSec)}`) : `
+        <div class="w-series"><div class="w-rep">Repetir ${r.reps}×</div>
+          ${row('Treino', `Tempo ${mm(r.runSec)}`)}${row('Recuperação', `Tempo ${mm(r.walkSec)}`)}</div>`}
+        ${r.coolSec ? row('Desaquecimento', `Tempo ${mm(r.coolSec)}`) : ''}
+      </div>
+      ${saved
+        ? `<p class="sub" style="margin-top:12px">Já está no relógio. Abra <b>Exercício</b>, gire a Digital Crown até <b>Corrida ao Ar Livre</b>, toque em <b>•••</b> e escolha <b>${esc(r.name)}</b>.</p>`
+        : `<ol class="steps" style="margin-top:14px">
+            <li><span class="n">1</span><div>No relógio, abra <b>Exercício</b> e gire a Digital Crown até <b>Corrida ao Ar Livre</b>.</div></li>
+            <li><span class="n">2</span><div>Toque em <b>•••</b> e depois em <b>Criar Exercício</b>.</div></li>
+            <li><span class="n">3</span><div>Monte as fases como no quadro acima, sempre por <b>Tempo</b>. ${r.continuous ? '' : `Adicione <b>Treino</b> e <b>Recuperação</b> e repita o par ${r.reps} vezes (se o relógio não tiver o campo de repetições, adicione o par ${r.reps} vezes).`}</div></li>
+            <li><span class="n">4</span><div>Em <b>Título</b>, use <b>${esc(r.name)}</b>. Da próxima vez é só escolher pelo nome.</div></li>
+          </ol>
+          ${id === S.me ? `<button class="btn quiet" data-a="watch-saved" data-v="${esc(r.key)}" style="margin-top:14px">Já montei no relógio</button>` : ''}`}
+    </div>`;
+  }).join('');
+  return `<div class="s-head"><h2>No Apple Watch</h2><button class="close" data-a="sheet-close">Fechar</button></div>
+    <p class="sub" style="margin-top:6px">O relógio vibra e mostra cada troca, mesmo com o iPhone travado, e o treino vai para o app Saúde. Depois, registre aqui como foi.</p>
+    ${blocks}
+    <div class="actions"><button class="btn" data-a="log">Registrar treino feito</button></div>`;
 }
 
 function sheetSaved() {
@@ -733,10 +777,15 @@ document.addEventListener('click', async ev => {
     case 'force': S.forceType = v || null; render(); break;
     case 'planwho': S.planWho = v; render(); break;
     case 'start': startWorkout(); break;
+    case 'watch': openSheet({ kind: 'watch' }); break;
+    case 'watch-saved': {
+      const list = new Set(person(S.me).watchSaved || []); list.add(v);
+      await S.store.updatePerson(S.me, { watchSaved: [...list] }); renderSheet(); toast('Marcado. Da próxima vez é só escolher pelo nome.'); break;
+    }
     case 'log': {
       const plans = currentPlans();
       const ids = Object.keys(plans), c = {}; ids.forEach(i => { c[i] = {}; });
-      openSheet({ kind: 'checkin', manual: true, plans, ids, type: plans[S.me].type, date: P.ymd(today()), c });
+      openSheet({ kind: 'checkin', manual: true, plans, ids, type: plans[S.me].type, date: P.ymd(today()), minutes: String(Math.round(P.totalSec(P.buildSegments(plans[S.me])) / 60)), c });
       break;
     }
     case 'ck': {
@@ -860,6 +909,7 @@ document.addEventListener('input', ev => {
 document.addEventListener('change', async ev => {
   const el = ev.target;
   if (el.dataset.a === 'alert') { S.alerts[el.dataset.k] = el.checked; saveAlerts(S.alerts); }
+  if (el.dataset.a === 'watch-toggle') { await S.store.updatePerson(S.me, { watch: el.checked }); }
   if (el.dataset.a === 'pname') {
     const n = el.value.trim();
     if (n) { await S.store.updatePerson(el.dataset.id, { name: n }); toast('Nome salvo.'); }

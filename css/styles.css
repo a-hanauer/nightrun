@@ -403,6 +403,19 @@ label.f > span, .f > .flabel { display: block; font-size: 13px; color: var(--mut
 .welcome .lanes-art i { display: block; height: 34px; border-radius: 17px; background: var(--surface); position: relative; }
 .welcome .lanes-art i::after { content: ''; position: absolute; top: 3px; width: 28px; height: 28px; border-radius: 50%; background: var(--c); left: var(--x); }
 
+/* Apple Watch */
+.watch-line { display: flex; align-items: center; gap: 6px; margin: 10px 0 0 14px; font-size: 13px; color: var(--muted); }
+.watch-line svg { flex: none; }
+.badge.new { background: color-mix(in srgb, var(--lamp) 18%, transparent); color: var(--lamp); }
+.w-card { background: var(--bg); border-radius: var(--r-ctl); padding: 6px 14px; margin-top: 12px; }
+.w-name { font: 700 20px/1.1 var(--display); padding: 10px 0 8px; }
+.w-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 15px; }
+.w-row span { color: var(--muted); }
+.w-row b { font-weight: 600; }
+.w-series { border-top: 1px solid var(--line); padding: 10px 0 0; }
+.w-series .w-rep { font-size: 13px; color: var(--lamp); font-weight: 600; padding-bottom: 2px; }
+.w-series .w-row { padding-left: 12px; }
+
 /* escolha única em lista */
 .choice-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 54px; padding: 0 16px; text-align: left; font-weight: 500; }
 .choice-row + .choice-row { border-top: 1px solid var(--line); }

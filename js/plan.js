@@ -204,30 +204,24 @@ export function nextSession(p, ctx) {
 }
 
 // ---------- segmentos do cronômetro ----------
+// Séries inteiras de corre+caminha, para bater 1:1 com um treino montado no Apple Watch.
+export function repsOf(plan) {
+  if (!plan.runSec) return 0;
+  return Math.max(1, Math.round(plan.mainSec / (plan.runSec + plan.walkSec)));
+}
 export function buildSegments(plan) {
   const segs = [];
   if (plan.warmSec) segs.push({ k: 'warm', s: plan.warmSec });
-  let left = plan.mainSec;
-  if (!plan.runSec) {
-    segs.push({ k: 'run', s: left });
-  } else {
-    let run = true;
-    while (left > 0) {
-      const len = Math.min(left, run ? plan.runSec : plan.walkSec);
-      // não termina o bloco com uma caminhada picada: o desaquecimento já é caminhada
-      if (!run && left - len <= 0) break;
-      // evita uma corrida final menor que 45s
-      if (run && left < 45 && segs.length) { segs[segs.length - 1].s += left; break; }
-      segs.push({ k: run ? 'run' : 'walk', s: len });
-      left -= len; run = !run;
-    }
-    if (left > 0 && segs.length) {
-      // sobra de caminhada vira desaquecimento
-      plan = { ...plan, coolSec: plan.coolSec + left };
-    }
-  }
+  if (!plan.runSec) segs.push({ k: 'run', s: plan.mainSec });
+  else for (let i = 0; i < repsOf(plan); i++) { segs.push({ k: 'run', s: plan.runSec }); segs.push({ k: 'walk', s: plan.walkSec }); }
   if (plan.coolSec) segs.push({ k: 'cool', s: plan.coolSec });
   return segs;
+}
+// Receita para o app Exercício do Apple Watch.
+export function watchRecipe(plan) {
+  const reps = repsOf(plan);
+  const name = plan.runSec ? `Nightrun ${ratioLabel(plan.level)} x${reps}` : `Nightrun ${Math.round(plan.mainSec / 60)} min`;
+  return { name, key: name, warmSec: plan.warmSec, coolSec: plan.coolSec, runSec: plan.runSec || plan.mainSec, walkSec: plan.walkSec, reps: reps || 1, continuous: !plan.runSec };
 }
 export function totalSec(segs) { return segs.reduce((a, b) => a + b.s, 0); }
 export function runCount(segs) { return segs.filter(s => s.k === 'run').length; }
