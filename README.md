@@ -41,7 +41,7 @@ Cada dupla fica num documento separado no Firestore (`couples/{código}`). Sem o
 - **Ritmo de subida.** Quantos treinos ficam em cada degrau depende de quantos treinos faltam até a prova, com no máximo um degrau por treino.
 - **Parada.** Mais de 10 dias sem treinar volta um degrau. Mais de 21, volta dois.
 - **Polimento.** Nos 6 dias antes da prova, só dois treinos curtos.
-- **Juntos.** Os dois treinam pelo mesmo tempo total, cada um com a própria proporção. Quando as fases divergem, a voz chama cada um pelo nome.
+- **Cada um no seu celular.** Cada pessoa treina e registra pelo próprio aparelho; o plano de um não muda o do outro. A pista, a semana e a tela Nós mostram os dois.
 
 ## Limitações do iPhone
 

@@ -26,7 +26,7 @@ const SHARE_ICON = '<svg width="16" height="18" viewBox="0 0 16 18" fill="none" 
 
 const S = {
   store: null, me: ls.get('lal:me'), code: ls.get('lal:code'),
-  route: 'hoje', mode: ls.get('lal:mode', 'together'), forceType: null,
+  route: 'hoje', forceType: null,
   planWho: null, sheet: null, alerts: loadAlerts(), workout: null, onboarding: null,
 };
 
@@ -93,18 +93,9 @@ function nextFor(id, forceType) {
   const { p, ctx } = ctxOf(id);
   return P.nextSession(p, { ...ctx, forceType });
 }
-function participants() {
-  return S.mode === 'together' ? [S.me, other(S.me)] : [S.me];
-}
+// Cada pessoa treina pelo próprio aparelho: o treino de hoje é sempre só de quem usa este.
 function currentPlans() {
-  const ids = participants();
-  const first = nextFor(S.me, S.forceType);
-  const plans = { [S.me]: first };
-  if (ids.length > 1) {
-    const o = other(S.me);
-    plans[o] = nextFor(o, first.type);
-  }
-  return P.alignPlans(plans);
+  return { [S.me]: nextFor(S.me, S.forceType) };
 }
 function startLevelFor(ev, id) { return ev?.startLevels?.[id] ?? person(id).level; }
 function readiness(ev, id) {
@@ -181,7 +172,7 @@ function whoRow(id, plan) {
   const flags = [...(plan.notes || [])];
   return `<div class="who" style="${cvar(id)}">
     <div class="who-row"><span class="bar"></span>
-      <div><div class="nm">${esc(pname(id))}</div><div class="meta">${desc}</div></div>
+      <div><div class="nm">${desc}</div><div class="meta">${P.ratioWords(plan.level)}</div></div>
       <div class="mins num">${Math.round(P.totalSec(segs) / 60)}<small>min</small></div>
     </div>
     ${strip(segs)}
@@ -211,9 +202,9 @@ function viewToday() {
   const doneToday = mine.filter(s => s.date === t);
   const yesterday = P.ymd(P.addDays(today(), -1));
   const notes = [];
-  if (doneToday.length) notes.push(`<div class="note"><span class="dot" style="background:var(--walk)"></span><div><b>Treino de hoje feito.</b> O próximo já está ajustado abaixo, para quando vocês voltarem.</div></div>`);
+  if (doneToday.length) notes.push(`<div class="note"><span class="dot" style="background:var(--walk)"></span><div><b>Treino de hoje feito.</b> O próximo já está ajustado abaixo.</div></div>`);
   else if (mine.some(s => s.date === yesterday) && type !== 'race') notes.push(`<div class="note"><span class="dot"></span><div><b>Ontem teve treino.</b> Descansar hoje rende mais. Se quiser se mexer, faça o leve.</div></div>`);
-  if (participants().some(id => person(id).painFlag)) notes.push(`<div class="note warn"><span class="dot"></span><div><b>Dor no último treino.</b> Se ainda incomoda, descanse. Dor que piora correndo é sinal para parar.</div></div>`);
+  if (person(S.me).painFlag) notes.push(`<div class="note warn"><span class="dot"></span><div><b>Dor no último treino.</b> Se ainda incomoda, descanse. Dor que piora correndo é sinal para parar.</div></div>`);
 
   const suggested = nextFor(S.me).type;
   const typeChoices = type === 'race' || type === 'taper' ? [] : ['base', 'long', 'easy'];
@@ -224,10 +215,6 @@ function viewToday() {
     ${notes.join('')}
     <section class="card session">
       <div class="session-controls">
-        <div class="seg full" role="group" aria-label="Quem treina">
-          <button data-a="mode" data-v="together" aria-pressed="${S.mode === 'together'}">Juntos</button>
-          <button data-a="mode" data-v="solo" aria-pressed="${S.mode === 'solo'}">Só eu</button>
-        </div>
         ${typeChoices.length ? `<div class="seg full" role="group" aria-label="Tipo de treino">${typeChoices.map(k =>
           `<button data-a="force" data-v="${k === suggested ? '' : k}" aria-pressed="${k === type}">${P.TYPE_NAMES[k]}${k === suggested ? '<i class="sugg" aria-label="sugerido"></i>' : ''}</button>`).join('')}</div>` : ''}
       </div>
@@ -265,7 +252,7 @@ function viewPlan() {
     <li>Mais de 10 dias parado volta um degrau; mais de 21, dois.</li>
     <li>Dor que incomodou segura o degrau e sugere descanso.</li>
     <li>Nos 6 dias antes da prova entra o polimento: dois treinos curtos para chegar descansado.</li>
-    <li>Quando os dois treinam juntos, cada um segue a própria proporção pelo mesmo tempo total, e a voz chama cada um pelo nome.</li>
+    <li>Cada um treina e registra pelo próprio celular. O plano de um não muda o do outro, mas a pista e a semana mostram os dois.</li>
   </ul></details>`;
 
   if (!ev) return `${head}<div class="note" style="margin-top:14px"><span class="dot"></span><div><b>Sem prova marcada.</b> Sem alvo, o plano sobe um degrau a cada dois treinos que saem na medida.</div></div>
@@ -377,7 +364,9 @@ function weeksStreak() {
 }
 function viewUs() {
   const all = sessionsSorted();
-  const together = all.filter(s => PEOPLE.every(id => s.checkin?.[id])).length;
+  const daysBy = id => new Set(all.filter(s => s.checkin?.[id]).map(s => s.date));
+  const dA = daysBy(PEOPLE[0]), dB = daysBy(PEOPLE[1]);
+  const sameDay = [...dA].filter(d => dB.has(d)).length;
   const totalSec = all.reduce((a, s) => a + (s.durationSec || 0), 0);
   const km = all.reduce((a, s) => a + PEOPLE.reduce((b, id) => b + (Number(s.checkin?.[id]?.distanceKm) || 0), 0), 0);
   const streak = weeksStreak();
@@ -408,7 +397,7 @@ function viewUs() {
   return `${topBar('', 'Nós')}
     <div class="goal-grid">
       <div class="stat"><div class="v num">${streak}</div><div class="l">${streak === 1 ? 'Semana' : 'Semanas'} seguidas com os dois na meta</div></div>
-      <div class="stat"><div class="v num">${together}</div><div class="l">Treinos juntos</div></div>
+      <div class="stat"><div class="v num">${sameDay}</div><div class="l">Dias em que os dois treinaram</div></div>
       <div class="stat"><div class="v num">${(totalSec / 3600).toFixed(1).replace('.', ',')} h</div><div class="l">Em movimento, somando tudo</div></div>
       <div class="stat"><div class="v num">${km ? km.toFixed(1).replace('.', ',') : '–'}</div><div class="l">Km registrados pelos dois</div></div>
     </div>
@@ -504,8 +493,7 @@ function sheetCheckin() {
   const blocks = sh.ids.map(id => {
     const c = sh.c[id];
     return `<div class="block" style="${cvar(id)}">
-      <div class="block-name">${esc(pname(id))}</div>
-      <div class="f" style="margin-top:14px"><span class="flabel">Completou?</span><div class="opts" role="radiogroup">${Object.entries(DONE).map(([k, l]) =>
+      <div class="f" style="margin-top:0"><span class="flabel">Completou?</span><div class="opts" role="radiogroup">${Object.entries(DONE).map(([k, l]) =>
         `<button data-a="ck" data-id="${id}" data-k="completed" data-v="${k}" aria-pressed="${c.completed === k}">${l}</button>`).join('')}</div></div>
       <div class="f" style="margin-top:14px"><span class="flabel">Esforço</span><div class="opts effort" role="radiogroup">${[1, 2, 3, 4, 5].map(n =>
         `<button data-a="ck" data-id="${id}" data-k="effort" data-v="${n}" aria-pressed="${c.effort === n}" aria-label="${EFFORT[n]}">${n}</button>`).join('')}</div>
@@ -524,10 +512,7 @@ function sheetCheckin() {
       <label class="f"><span>Dia</span><input class="input" type="date" data-bind="date" value="${sh.date}" max="${P.ymd(today())}"></label>
       <label class="f"><span>Duração (min)</span><input class="input num" inputmode="numeric" data-bind="minutes" value="${esc(sh.minutes || '')}"></label>
     </div>
-    <div class="f" style="margin-top:14px"><span class="flabel">Quem treinou</span><div class="opts" role="radiogroup">
-      <button data-a="ck-who" data-v="both" aria-pressed="${sh.ids.length === 2}">Os dois</button>
-      ${PEOPLE.map(id => `<button data-a="ck-who" data-v="${id}" aria-pressed="${sh.ids.length === 1 && sh.ids[0] === id}">${esc(pname(id))}</button>`).join('')}</div></div>
-    <p class="small" style="margin-top:10px">Conta como o treino ${P.TYPE_NAMES[sh.plans[sh.ids[0]].type]} sugerido para hoje.</p>` : `<p class="sub" style="margin-top:6px">${P.TYPE_NAMES[sh.type]}, ${P.fmtClock(sh.durationSec)} de treino. Isso ajusta o próximo treino de cada um.</p>`}
+    <p class="small" style="margin-top:10px">Conta como o treino ${P.TYPE_NAMES[sh.plans[sh.ids[0]].type]} sugerido para hoje.</p>` : `<p class="sub" style="margin-top:6px">${P.TYPE_NAMES[sh.type]}, ${Math.max(1, Math.round(sh.durationSec / 60))} min de treino. Isso ajusta o seu próximo treino.</p>`}
     <div style="margin-top:6px">${blocks}</div>
     <div class="actions"><button class="btn" data-a="ck-save" ${ready ? '' : 'disabled'}>Salvar treino</button></div>`;
 }
@@ -537,11 +522,8 @@ function sheetWatch() {
   const mm = sec => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   const row = (label, val) => `<div class="w-row"><span>${label}</span><b class="num">${val}</b></div>`;
   const blocks = Object.entries(plans).map(([id, pl]) => {
-    if (!person(id).watch) return `<div class="block" style="${cvar(id)}"><div class="block-name">${esc(pname(id))}</div>
-      <p class="sub" style="margin-top:8px">Sem Apple Watch: segue pelo cronômetro do app. Para usar o relógio, ative em Ajustes no aparelho de ${esc(pname(id))}.</p></div>`;
     const r = P.watchRecipe(pl), saved = (person(id).watchSaved || []).includes(r.key);
     return `<div class="block" style="${cvar(id)}">
-      <div class="block-name">${esc(pname(id))}</div>
       <div class="w-card">
         <div class="w-name">${esc(r.name)}</div>
         ${r.warmSec ? row('Aquecimento', `Tempo ${mm(r.warmSec)}`) : ''}
@@ -773,7 +755,6 @@ document.addEventListener('click', async ev => {
   const a = el.dataset.a, v = el.dataset.v, id = el.dataset.id;
   switch (a) {
     case 'route': setRoute(el.dataset.r); break;
-    case 'mode': S.mode = v; ls.set('lal:mode', v); render(); break;
     case 'force': S.forceType = v || null; render(); break;
     case 'planwho': S.planWho = v; render(); break;
     case 'start': startWorkout(); break;
@@ -791,13 +772,6 @@ document.addEventListener('click', async ev => {
     case 'ck': {
       const val = el.dataset.k === 'completed' ? v : Number(v);
       S.sheet.c[id][el.dataset.k] = val; S.sheet.armCancel = false; renderSheet(); break;
-    }
-    case 'ck-who': {
-      const all = currentPlans();
-      const ids = v === 'both' ? PEOPLE.slice() : [v];
-      const plans = {}; ids.forEach(i => { plans[i] = all[i] || nextFor(i, all[S.me]?.type); });
-      ids.forEach(i => { S.sheet.c[i] ||= {}; });
-      S.sheet.ids = ids; S.sheet.plans = P.alignPlans(plans); renderSheet(); break;
     }
     case 'ck-save': el.disabled = true; await saveCheckin(); break;
     case 'sheet-cancel':
