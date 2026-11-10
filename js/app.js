@@ -56,6 +56,7 @@ function toast(msg) {
 }
 
 const ICON = {
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
   today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.5" cy="4.5" r="2"/><path d="M8 21l3-6 3 2v4M6 12l3-3.5 4 1 2.5 3.5 3 1"/></svg>',
   plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h3M4 12h3M4 18h3M10 6h10M10 12h10M10 18h6"/></svg>',
   race: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h13l-2.5 4L18 12H5"/></svg>',
@@ -507,7 +508,7 @@ function sheetCheckin() {
     </div>`;
   }).join('');
   const ready = sh.ids.every(id => sh.c[id].completed && sh.c[id].effort && sh.c[id].pain !== undefined);
-  return `<div class="s-head"><h2>${sh.manual ? 'Registrar treino' : 'Como foi?'}</h2><button class="close" data-a="sheet-cancel">${sh.armCancel ? 'Toque de novo para descartar' : sh.manual ? 'Cancelar' : 'Descartar'}</button></div>
+  return `<div class="s-head"><h2>${sh.manual ? 'Registrar treino' : 'Como foi?'}</h2><button class="close ${sh.armCancel ? '' : 'x'}" data-a="sheet-cancel" aria-label="${sh.armCancel ? 'Toque de novo para descartar' : sh.manual ? 'Cancelar' : 'Descartar'}">${sh.armCancel ? 'Toque de novo para descartar' : ICON.close}</button></div>
     ${sh.manual ? `<div class="two">
       <label class="f"><span>Dia</span><input class="input" type="date" data-bind="date" value="${sh.date}" max="${P.ymd(today())}"></label>
       <label class="f"><span>Duração (min)</span><input class="input num" inputmode="numeric" data-bind="minutes" value="${esc(sh.minutes || '')}"></label>
@@ -543,7 +544,7 @@ function sheetWatch() {
           ${id === S.me ? `<button class="btn quiet" data-a="watch-saved" data-v="${esc(r.key)}" style="margin-top:14px">Já montei no relógio</button>` : ''}`}
     </div>`;
   }).join('');
-  return `<div class="s-head"><h2>No Apple Watch</h2><button class="close" data-a="sheet-close">Fechar</button></div>
+  return `<div class="s-head"><h2>No Apple Watch</h2><button class="close x" data-a="sheet-close" aria-label="Fechar">${ICON.close}</button></div>
     <p class="sub" style="margin-top:6px">O relógio vibra e mostra cada troca, mesmo com o iPhone travado, e o treino vai para o app Saúde. Depois, registre aqui como foi.</p>
     ${blocks}
     <div class="actions"><button class="btn" data-a="log">Registrar treino feito</button></div>`;
@@ -561,7 +562,7 @@ function sheetSaved() {
 function sheetEvent() {
   const e = S.sheet.e;
   const kms = [3, 5, 10, 21.1];
-  return `<div class="s-head"><h2>${S.sheet.isNew ? 'Nova prova' : 'Editar prova'}</h2><button class="close" data-a="sheet-close">Cancelar</button></div>
+  return `<div class="s-head"><h2>${S.sheet.isNew ? 'Nova prova' : 'Editar prova'}</h2><button class="close x" data-a="sheet-close" aria-label="Cancelar">${ICON.close}</button></div>
     <label class="f"><span>Nome</span><input class="input" data-bind="e.name" value="${esc(e.name)}" placeholder="Ex.: Night Run Novo Hamburgo"></label>
     <div class="two">
       <label class="f"><span>Data</span><input class="input" type="date" data-bind="e.date" value="${esc(e.date)}"></label>
@@ -582,7 +583,7 @@ function sheetEvent() {
 
 function sheetRaceResult() {
   const e = S.sheet.e;
-  return `<div class="s-head"><h2>${esc(e.name)}</h2><button class="close" data-a="sheet-close">Fechar</button></div>
+  return `<div class="s-head"><h2>${esc(e.name)}</h2><button class="close x" data-a="sheet-close" aria-label="Fechar">${ICON.close}</button></div>
     <p class="sub" style="margin-top:6px">${dLong(P.parseYmd(e.date))}, ${String(e.distanceKm).replace('.', ',')} km</p>
     ${PEOPLE.map(id => `<div class="block" style="${cvar(id)};margin-top:18px"><div class="block-name">${esc(pname(id))}</div>
       <div class="two"><label class="f"><span>Tempo (h:mm:ss)</span><input class="input num" inputmode="numeric" data-bind="e.results.${id}.time" value="${esc(e.results?.[id]?.time || '')}" placeholder="0:42:10"></label>
@@ -596,7 +597,7 @@ function sheetSession() {
   if (!s) return '<p class="sub">Treino não encontrado.</p>';
   const d = P.parseYmd(s.date);
   const ids = PEOPLE.filter(id => s.checkin?.[id]);
-  return `<div class="s-head"><h2>${P.TYPE_NAMES[s.type] || 'Treino'}</h2><button class="close" data-a="sheet-close">Fechar</button></div>
+  return `<div class="s-head"><h2>${P.TYPE_NAMES[s.type] || 'Treino'}</h2><button class="close x" data-a="sheet-close" aria-label="Fechar">${ICON.close}</button></div>
     <p class="sub" style="margin-top:6px">${dLong(d)}. ${Math.round((s.durationSec || 0) / 60)} min de treino.</p>
     ${ids.map(id => {
       const c = s.checkin[id], pl = s.plans?.[id], r = s.results?.[id];
@@ -617,7 +618,7 @@ function sheetSession() {
 
 function sheetConnect() {
   const sh = S.sheet;
-  return `<div class="s-head"><h2>Conectar</h2><button class="close" data-a="sheet-close">Cancelar</button></div>
+  return `<div class="s-head"><h2>Conectar</h2><button class="close x" data-a="sheet-close" aria-label="Cancelar">${ICON.close}</button></div>
     <p class="sub" style="margin-top:6px">Um de vocês cria o código e manda o link para o outro.</p>
     <div class="actions"><button class="btn" data-a="code-create">Criar código do casal</button></div>
     <label class="f"><span>Ou cole o código que recebeu</span><input class="input" data-bind="code" value="${esc(sh.code || '')}" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
