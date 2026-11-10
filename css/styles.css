@@ -523,3 +523,5 @@ label.f > span, .f > .flabel { display: block; font-size: 13px; color: var(--mut
 .seg button { border-radius: 999px; transition: color .2s, background .2s, box-shadow .2s; }
 .seg button[aria-pressed="true"] { background: color-mix(in srgb, var(--surface-2) 75%, #fff 10%); color: var(--text); box-shadow: 0 3px 10px var(--tb-sombra), var(--gl-rim); }
 @media (prefers-reduced-motion: reduce) { .sheet .close, .seg button { transition: none; } }
+/* cabeçalho da sheet preso: o ✕ fica sempre à mão enquanto o conteúdo rola por baixo */
+.sheet .s-head { position: sticky; top: -10px; z-index: 2; margin: 0 calc(-1 * var(--gutter)); padding: 6px var(--gutter) 10px; background: color-mix(in srgb, var(--surface) 90%, transparent); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
