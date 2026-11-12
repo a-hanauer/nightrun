@@ -41,7 +41,7 @@ Cada dupla fica num documento separado no Firestore (`couples/{código}`). Sem o
 - **Ritmo de subida.** Quantos treinos ficam em cada degrau depende de quantos treinos faltam até a prova, com no máximo um degrau por treino.
 - **Parada.** Mais de 10 dias sem treinar volta um degrau. Mais de 21, volta dois.
 - **Polimento.** Nos 6 dias antes da prova, só dois treinos curtos.
-- **Cada um no seu celular.** Cada pessoa treina e registra pelo próprio aparelho; o plano de um não muda o do outro. A pista, a semana e a tela Nós mostram os dois.
+- **Cada um no seu celular.** Cada pessoa treina e registra pelo próprio aparelho; o plano de um não muda o do outro. A escada de degraus, a semana e a tela Dupla mostram os dois.
 
 ## Limitações do iPhone
 
@@ -55,6 +55,7 @@ Cada dupla fica num documento separado no Firestore (`couples/{código}`). Sem o
 - `js/app.js`: telas e ações
 - `js/plan.js`: lógica de treino (níveis, metas, adaptação, projeção)
 - `js/timer.js`: cronômetro, voz e bipe
+- `js/art.js`: ilustrações em SVG (cenas noturnas, corredor em pictograma, escada de degraus)
 - `js/store.js`: Firestore ou armazenamento local
 - `js/firebase-config.js`: configuração do Firebase
 - `sw.js`, `manifest.webmanifest`, `icons/`: instalação na tela de início e uso offline

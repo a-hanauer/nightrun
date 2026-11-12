@@ -7,4 +7,6 @@ Web app estático (sem build) de treino de corrida para duplas (feito para Andr�
 - Ao mudar arquivos que o app guarda em cache, suba a versão de `CACHE` em `sw.js` para os iPhones receberem a atualização.
 - Interface em português do Brasil. Foco em iPhone, instalado na tela de início.
 - Pessoas ficam em slots `p1`/`p2` (campo `order`). A dupla original pode ter as chaves `andre`/`ivie`: nunca use ids fixos no código.
-- Cada pessoa treina e faz check-in só no próprio aparelho (não existe mais treino "Juntos"); telas de dupla (pista, semana, Nós) continuam mostrando os dois.
+- Cada pessoa treina e faz check-in só no próprio aparelho (não existe mais treino "Juntos"); telas de dupla (escada de degraus, semana, aba Dupla) continuam mostrando os dois.
+- Ilustrações ficam em `js/art.js` (SVG nas cores do app; peças repetidas em `Art.DEFS`, injetadas uma vez). Um só desenho de corredor em todo o app.
+- Vocabulário: "dupla" (nunca casal/nós), "degrau" (nunca nível), minutos sempre como "35 min". Hoje tem três estados: treinar, feito, descanso.

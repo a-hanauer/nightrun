@@ -1,8 +1,9 @@
 import * as P from './plan.js';
+import * as Art from './art.js';
 import { openStore, cloudEnabled, newCoupleCode, newPerson, hasLocalData } from './store.js';
 import { Workout, loadAlerts, saveAlerts, unlockAudio, beep, say, locate, kindWord } from './timer.js';
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const $ = s => document.querySelector(s);
 const app = $('#app'), tabsEl = $('#tabs'), sheetEl = $('#sheet'), timerEl = $('#timer'), toastEl = $('#toast');
 
@@ -34,7 +35,7 @@ const S = {
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const today = () => new Date();
 const D = () => S.store.data;
-// Pessoas do casal, na ordem cadastrada (atualizado a cada render).
+// Pessoas da dupla, na ordem cadastrada (atualizado a cada render).
 const PEOPLE = [];
 function syncPeople() {
   const ps = S.store?.data?.people || {};
@@ -57,11 +58,11 @@ function toast(msg) {
 
 const ICON = {
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
-  today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.5" cy="4.5" r="2"/><path d="M8 21l3-6 3 2v4M6 12l3-3.5 4 1 2.5 3.5 3 1"/></svg>',
-  plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h3M4 12h3M4 18h3M10 6h10M10 12h10M10 18h6"/></svg>',
-  race: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h13l-2.5 4L18 12H5"/></svg>',
-  us: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="8.5" cy="8" r="3"/><circle cx="16.5" cy="9" r="2.5"/><path d="M3 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5M14.5 14.6c.6-.2 1.3-.3 2-.3 2.6 0 4.5 1.8 4.5 4.5"/></svg>',
-  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
+  today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="15.4" cy="4.3" r="1.9" fill="currentColor" stroke="none"/><path d="M14 7.2 11.1 12.8M11.1 12.8l4 1.7-1.4 4.5 2.1.5M11.1 12.8l-2.6 3.6-3.8 1.2M13.8 7.7l2.6 2.6 2.6-1.7M13.8 7.7l-2.9 1.9-1.9 2.9"/></svg>',
+  plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h5v-5h5v-5h5V5h3"/></svg>',
+  race: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4.5c2.6-1.3 4.6 1.3 7.2 0s4.2-.9 6.3 0v8.5c-2.1-.9-3.7-1.3-6.3 0s-4.6-1.3-7.2 0"/></svg>',
+  us: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="8.5" cy="8" r="3"/><circle cx="16.5" cy="9" r="2.5"/><path d="M3 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5M14.5 14.6c.6-.2 1.3-.3 2-.3 2.6 0 4.5 1.8 4.5 4.5"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
   pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>',
   back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
@@ -111,7 +112,7 @@ function readiness(ev, id) {
 }
 
 // ---------- rotas ----------
-function setRoute(r) { S.route = r; window.scrollTo(0, 0); render(); }
+function setRoute(r) { S.route = r; S.armMe = null; window.scrollTo(0, 0); render(); }
 
 function render() {
   if (!S.store) return;
@@ -125,7 +126,7 @@ function render() {
 }
 
 function renderTabs() {
-  const items = [['hoje', 'Hoje', ICON.today], ['plano', 'Plano', ICON.plan], ['provas', 'Provas', ICON.race], ['nos', 'Nós', ICON.us], ['ajustes', 'Ajustes', ICON.gear]];
+  const items = [['hoje', 'Hoje', ICON.today], ['plano', 'Plano', ICON.plan], ['provas', 'Provas', ICON.race], ['nos', 'Dupla', ICON.us], ['ajustes', 'Ajustes', ICON.gear]];
   tabsEl.hidden = false;
   tabsEl.innerHTML = `<div class="wrap">${items.map(([r, l, i]) =>
     `<button class="tab" data-a="route" data-r="${r}" ${S.route === r ? 'aria-current="page"' : ''}>${i}<span>${l}</span></button>`).join('')}</div>`;
@@ -138,27 +139,50 @@ function topBar(kicker, title) {
 }
 
 // ---------- componentes ----------
-function trackHero(ev) {
-  if (!ev) return `<div class="note"><span class="dot"></span><div><b>Sem prova marcada.</b> Cadastre uma em Provas para o plano ter um alvo. Até lá ele evolui no seu ritmo.</div></div>`;
-  const d = P.parseYmd(ev.date);
-  const days = P.daysBetween(today(), d);
-  const t = P.targetLevel(ev);
-  const lane = id => {
-    const pct = readiness(ev, id);
-    return `<div class="lane" style="${cvar(id)}">
-      <div class="fill" style="width:calc(${(pct * 100).toFixed(1)}% )"></div>
-      <div class="runner" style="left:max(31px, ${(pct * 100).toFixed(1)}%)">${esc(pname(id)[0])}</div>
-      <div class="lvl" style="left:max(31px, ${(pct * 100).toFixed(1)}%)">${pct < 0.72 ? P.ratioLabel(person(id).level) : ''}</div>
-    </div>`;
-  };
-  return `<section class="race-hero card">
-    <div class="row">
-      <div><h2 class="name">${esc(ev.name)}</h2><p class="when">${dLong(d)}${ev.time ? `, ${esc(ev.time)}` : ''}</p></div>
-      <div class="days num">${days === 0 ? 'Hoje' : days}${days ? `<small>${days === 1 ? 'dia' : 'dias'}</small>` : ''}</div>
-    </div>
-    <div class="track">${PEOPLE.map(lane).join('')}<div class="finish" aria-hidden="true"></div></div>
-    <div class="track-foot"><span>Onde cada um está</span><span>Meta ${P.ratioLabel(t)}</span></div>
-  </section>`;
+const mins = sec => `${Math.round(sec / 60)} min`;
+const stepLabel = l => P.LEVELS[l].run ? P.ratioLabel(l) : `${P.LEVELS[l].base} min`;
+const stepProse = l => P.LEVELS[l].run ? P.ratioLabel(l) : `${P.LEVELS[l].base} min sem parar`;
+const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+
+// Degraus mostrados na escada: do mais baixo dos dois até a meta (no máximo 6, para caber).
+function stairLevels(ev) {
+  const levels = PEOPLE.map(id => person(id).level);
+  const target = ev ? P.targetLevel(ev) : null;
+  const lo = Math.min(...levels, ...(ev ? PEOPLE.map(id => startLevelFor(ev, id)) : levels));
+  const hi = Math.max(...levels, target ?? Math.min(P.MAX_LEVEL, Math.max(...levels) + 2));
+  let all = []; for (let l = lo; l <= hi; l++) all.push(l);
+  if (all.length > 6) {
+    const keep = new Set([lo, hi, ...levels]);
+    for (let k = 1; k < 6 && keep.size < 6; k++) keep.add(Math.round(lo + ((hi - lo) * k) / 6));
+    all = all.filter(l => keep.has(l));
+  }
+  return { levels: all, target };
+}
+function stairs(ev, focusId) {
+  const { levels, target } = stairLevels(ev);
+  const idx = l => { let i = 0; levels.forEach((v, k) => { if (v <= l) i = k; }); return i; };
+  return Art.escada(
+    levels.map(l => ({ label: stepLabel(l), target: l === target })),
+    PEOPLE.map((id, i) => ({ color: `var(--p${i})`, step: idx(person(id).level), name: pname(id) })),
+    { flag: !!target, focus: focusId ? idx(person(focusId).level) : null });
+}
+function raceHead(ev) {
+  if (!ev) return `<div class="sec-row"><b>Vocês dois</b><button class="link" data-a="route" data-r="provas">Marcar uma prova</button></div>`;
+  const days = P.daysBetween(today(), P.parseYmd(ev.date));
+  return `<div class="sec-row"><b>Rumo à ${esc(ev.name)}</b><span class="days num">${days === 0 ? 'É hoje' : `${days}<small>${days === 1 ? 'dia' : 'dias'}</small>`}</span></div>`;
+}
+function weekRows() {
+  const target = D().settings?.weeklyTarget || 3;
+  return `<div class="week">${PEOPLE.map(id => {
+    const n = weekCountOf(id);
+    return `<span class="nm" style="${cvar(id)}"><i class="who-dot"></i>${esc(pname(id))}</span>
+      <div class="pips" style="${cvar(id)}">${Array.from({ length: target }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</div>
+      <span class="count num">${n} de ${target}</span>`;
+  }).join('')}</div>`;
+}
+function duoCard(ev) {
+  return `<section class="card pair">${raceHead(ev)}${stairs(ev)}
+    <p class="small" style="margin:10px 0 2px">Treinos desta semana</p>${weekRows()}</section>`;
 }
 
 function strip(segs, cls = 'strip') {
@@ -166,75 +190,61 @@ function strip(segs, cls = 'strip') {
   return `<div class="${cls}">${segs.map(s => `<i class="k-${s.k}" style="flex:${(s.s / tot).toFixed(4)}"></i>`).join('')}</div>`;
 }
 
-function whoRow(id, plan) {
-  const segs = P.buildSegments(plan);
-  const runs = P.runCount(segs);
-  const desc = plan.runSec ? `${P.ratioLabel(plan.level)}, ${runs} ${runs === 1 ? 'corrida' : 'corridas'}` : `${Math.round(plan.mainSec / 60)} min correndo`;
-  const flags = [...(plan.notes || [])];
-  return `<div class="who" style="${cvar(id)}">
-    <div class="who-row"><span class="bar"></span>
-      <div><div class="nm">${desc}</div><div class="meta">${P.ratioWords(plan.level)}</div></div>
-      <div class="mins num">${Math.round(P.totalSec(segs) / 60)}<small>min</small></div>
-    </div>
-    ${strip(segs)}
-    ${person(id).watch ? (() => { const r = P.watchRecipe(plan); const saved = (person(id).watchSaved || []).includes(r.key);
-      return `<div class="watch-line">${ICON.watch}<span>${esc(r.name)}</span>${saved ? '<span class="badge">no relógio</span>' : '<span class="badge new">montar</span>'}</div>`; })() : ''}
-    ${flags.map(f => `<div class="flag">${esc(f)}</div>`).join('')}
-  </div>`;
-}
-
-function weekBlock() {
-  const target = D().settings?.weeklyTarget || 3;
-  return `<div class="card week">${PEOPLE.map(id => {
-    const n = weekCountOf(id);
-    return `<span class="nm">${esc(pname(id))}</span>
-      <div class="pips" style="${cvar(id)}">${Array.from({ length: target }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</div>
-      <span class="count num">${n}/${target}</span>`;
-  }).join('')}</div>`;
-}
-
 // ---------- Hoje ----------
 function viewToday() {
-  const ev = activeEvent();
-  const plans = currentPlans();
-  const type = plans[S.me].type;
+  const ev = activeEvent(), me = S.me;
+  const plan = currentPlans()[me], type = plan.type, isRace = type === 'race';
   const t = P.ymd(today());
-  const mine = sessionsOf(S.me);
-  const doneToday = mine.filter(s => s.date === t);
-  const yesterday = P.ymd(P.addDays(today(), -1));
-  const notes = [];
-  if (doneToday.length) notes.push(`<div class="note"><span class="dot" style="background:var(--walk)"></span><div><b>Treino de hoje feito.</b> O próximo já está ajustado abaixo.</div></div>`);
-  else if (mine.some(s => s.date === yesterday) && type !== 'race') notes.push(`<div class="note"><span class="dot"></span><div><b>Ontem teve treino.</b> Descansar hoje rende mais. Se quiser se mexer, faça o leve.</div></div>`);
-  if (person(S.me).painFlag) notes.push(`<div class="note warn"><span class="dot"></span><div><b>Dor no último treino.</b> Se ainda incomoda, descanse. Dor que piora correndo é sinal para parar.</div></div>`);
+  const mine = sessionsOf(me);
+  const doneToday = mine.filter(x => x.date === t);
+  const trainedYesterday = mine.some(x => x.date === P.ymd(P.addDays(today(), -1)));
+  const anyway = S.trainAnyway === t;
+  const state = doneToday.length && !anyway ? 'done' : trainedYesterday && !isRace && !anyway ? 'rest' : 'train';
+  const next = nextFor(me);
+  const nextTxt = pl => `${P.TYPE_NAMES[pl.type]}${pl.runSec ? `, ${P.ratioLabel(pl.level)}` : ''}`;
+  const pain = person(me).painFlag ? `<div class="note warn"><span class="dot"></span><div><b>Dor no último treino.</b> Se ainda incomoda, descanse. Dor que piora correndo é sinal para parar.</div></div>` : '';
+  const kicker = dLong(today());
+  let title, main;
 
-  const suggested = nextFor(S.me).type;
-  const typeChoices = type === 'race' || type === 'taper' ? [] : ['base', 'long', 'easy'];
-  const isRace = type === 'race';
-  return `
-    ${topBar(WD_LONG[today().getDay()], `${today().getDate()} de ${MON_LONG[today().getMonth()]}`)}
-    ${trackHero(ev)}
-    ${notes.join('')}
-    <section class="card session">
-      <div class="session-controls">
-        ${typeChoices.length ? `<div class="seg full" role="group" aria-label="Tipo de treino">${typeChoices.map(k =>
-          `<button data-a="force" data-v="${k === suggested ? '' : k}" aria-pressed="${k === type}">${P.TYPE_NAMES[k]}${k === suggested ? '<i class="sugg" aria-label="sugerido"></i>' : ''}</button>`).join('')}</div>` : ''}
+  if (state === 'done') {
+    const last = doneToday[doneToday.length - 1], c = last.checkin[me];
+    const after = WD_LONG[P.addDays(today(), 2).getDay()].toLowerCase();
+    title = 'Feito por hoje';
+    main = `<section class="card art-card">${Art.descanso([pcolor(me)])}
+      <div class="body">
+        <div class="done-title">${P.TYPE_NAMES[last.type] || 'Treino'}, ${mins(last.durationSec || 0)}<span class="badge new">${(EFFORT[c.effort] || DONE[c.completed]).toLowerCase()}</span></div>
+        <p class="sub" style="margin-top:6px">${esc(last.results?.[me]?.msg || '')} <b>Próximo: ${nextTxt(next)}</b>, a partir de ${after}.</p>
+        <div class="links"><button class="link" data-a="session" data-id="${last.id}">Ver o treino de hoje</button><button class="link" data-a="train-anyway">Treinar de novo</button></div>
+      </div></section>`;
+  } else if (state === 'rest') {
+    title = 'Hoje é descanso';
+    main = `<section class="card art-card">${Art.descanso([pcolor(me)])}
+      <div class="body">
+        <div class="done-title">Ontem teve treino</div>
+        <p class="sub" style="margin-top:6px">O corpo evolui no descanso. <b>Próximo: ${nextTxt(next)}</b>, amanhã.</p>
+        <div class="links"><button class="link" data-a="route" data-r="plano">Ver o plano</button><button class="link" data-a="train-anyway">Treinar hoje mesmo assim</button></div>
+      </div></section>`;
+  } else {
+    const segs = P.buildSegments(plan), runs = P.runCount(segs);
+    const suggested = next.type, canSwap = !isRace && type !== 'taper';
+    const useWatch = person(me).watch && !isRace;
+    title = isRace ? 'Hoje é dia de prova' : `Hoje é dia de ${P.TYPE_NAMES[type]}`;
+    main = `<section class="card session${isRace ? ' art-card' : ''}">
+      ${isRace ? Art.chegada({ runners: PEOPLE.map((_, i) => `var(--p${i})`), h: 170 }) + '<div class="body">' : ''}
+      <div class="big">
+        <div class="r num">${plan.runSec ? P.ratioLabel(plan.level) : Math.round(plan.mainSec / 60)}<small>${plan.runSec ? `× ${runs} ${runs === 1 ? 'corrida' : 'corridas'}` : 'min sem parar'}</small></div>
+        ${isRace ? '' : `<div class="mins num">${Math.round(P.totalSec(segs) / 60)}<small>min</small></div>`}
       </div>
-      <h2 class="session-type">${P.TYPE_NAMES[type]}</h2>
-      <p class="session-hint">${P.TYPE_HINTS[type]} ${typeChoices.length ? (type === suggested ? '<span class="sugg-txt">Sugerido para hoje.</span>' : `<span class="sugg-txt">A sugestão era ${P.TYPE_NAMES[suggested]}.</span>`) : ''}</p>
-      ${Object.entries(plans).map(([id, pl]) => whoRow(id, pl)).join('')}
-      <div class="legend"><span style="--k:var(--lamp)">Corre</span><span style="--k:var(--walk)">Caminha</span><span style="--k:var(--calm)">Aquece e desaquece</span></div>
-      <div class="actions">
-        ${person(S.me).watch ? `
-        <button class="btn" data-a="watch">Treinar com o Apple Watch</button>
-        <button class="btn quiet" data-a="log" style="margin-top:8px">Registrar treino feito</button>
-        <button class="btn ghost" data-a="start">Usar o cronômetro do app</button>` : `
-        <button class="btn" data-a="start">${isRace ? 'Começar cronômetro de prova' : 'Começar treino'}</button>
-        <button class="btn ghost" data-a="log">Registrar treino feito sem o app</button>`}
-      </div>
-    </section>
-    <h2 class="sec">Esta semana</h2>
-    ${weekBlock()}
-  `;
+      <p class="desc">${cap(P.ratioWords(plan.level))}. ${P.TYPE_HINTS[type]}${canSwap && type !== suggested ? ` O plano sugeria ${P.TYPE_NAMES[suggested]}.` : ''}</p>
+      ${isRace ? '' : strip(segs)}
+      ${(plan.notes || []).map(f => `<div class="flag">${esc(f)}</div>`).join('')}
+      ${useWatch ? `<button class="btn" data-a="watch">${ICON.watch}Treinar no Apple Watch</button>`
+        : `<button class="btn" data-a="start">${isRace ? 'Começar cronômetro de prova' : 'Começar treino'}</button>`}
+      <div class="links">${canSwap ? `<button class="link" data-a="pick-type">Trocar treino</button>` : '<span></span>'}<button class="link" data-a="log">${isRace ? 'Já corri, registrar' : 'Já treinei, registrar'}</button></div>
+      ${isRace ? '</div>' : ''}
+    </section>`;
+  }
+  return `${topBar(kicker, title)}${pain}${main}${duoCard(ev)}`;
 }
 
 // ---------- Plano ----------
@@ -253,12 +263,13 @@ function viewPlan() {
     <li>Mais de 10 dias parado volta um degrau; mais de 21, dois.</li>
     <li>Dor que incomodou segura o degrau e sugere descanso.</li>
     <li>Nos 6 dias antes da prova entra o polimento: dois treinos curtos para chegar descansado.</li>
-    <li>Cada um treina e registra pelo próprio celular. O plano de um não muda o do outro, mas a pista e a semana mostram os dois.</li>
+    <li>Cada um treina e registra pelo próprio celular. O plano de um não muda o do outro, mas a escada e a semana mostram os dois.</li>
   </ul></details>`;
 
-  if (!ev) return `${head}<div class="note" style="margin-top:14px"><span class="dot"></span><div><b>Sem prova marcada.</b> Sem alvo, o plano sobe um degrau a cada dois treinos que saem na medida.</div></div>
-    <div class="goal-grid" style="margin-top:10px"><div class="stat"><div class="v">${P.ratioLabel(p.level)}</div><div class="l">Degrau atual</div></div>
-    <div class="stat"><div class="v">${D().settings?.weeklyTarget || 3}×</div><div class="l">Treinos por semana</div></div></div>${explain}`;
+  if (!ev) return `${head}
+    <section class="card pair" style="margin-top:14px">${raceHead(null)}${stairs(null, id)}
+      <p class="sub" style="margin-top:10px">${esc(pname(id))} está em <b>${stepProse(p.level)}</b>. Sem prova marcada, o plano sobe um degrau a cada dois treinos que saem na medida.</p></section>
+    ${explain}`;
 
   const proj = P.projectPlan(p, ctx);
   const target = proj.target;
@@ -274,28 +285,25 @@ function viewPlan() {
       const d = P.parseYmd(s.date);
       rows.push(`<div class="wk-row done"><div class="d">${WD[d.getDay()]}<b>${d.getDate()}</b></div>
         <div><div class="t">${P.TYPE_NAMES[s.type]}<span class="badge">feito</span></div><div class="r">${pl.runSec ? P.ratioLabel(pl.level) : 'Contínuo'}</div></div>
-        <div class="m num">${Math.round((s.durationSec || 0) / 60)}′</div></div>`);
+        <div class="m num">${Math.round((s.durationSec || 0) / 60)}<small>min</small></div></div>`);
     });
     w.sessions.forEach(({ date, plan }) => {
       const segs = P.buildSegments(plan);
       rows.push(`<div class="wk-row"><div class="d">${WD[date.getDay()]}<b>${date.getDate()}</b></div>
         <div><div class="t">${P.TYPE_NAMES[plan.type]}${plan.attempt ? '<span class="up">novo degrau</span>' : ''}</div>
         <div class="r">${plan.type === 'race' ? `${km} km, ${P.ratioWords(plan.level)}` : plan.runSec ? `${P.ratioLabel(plan.level)}, ${P.runCount(segs)} corridas` : `${Math.round(plan.mainSec / 60)} min correndo`}</div></div>
-        <div class="m num">${plan.type === 'race' ? '🏁' : Math.round(P.totalSec(segs) / 60) + '′'}</div></div>`);
+        <div class="m num">${plan.type === 'race' ? '<i class="chk" aria-label="prova"></i>' : Math.round(P.totalSec(segs) / 60) + '<small>min</small>'}</div></div>`);
     });
     if (!rows.length) return '';
     const label = wi === 0 ? 'Esta semana' : `Semana de ${w.start.getDate()} ${MON[w.start.getMonth()]}`;
     return `<div class="wk"><h3>${label}</h3><div class="wk-list">${rows.join('')}</div></div>`;
   }).join('');
 
+  const nowEst = P.estimateRaceMin(p.level, km, p);
   return `${head}
-    <h2 class="sec" style="margin-top:22px">Rumo à ${esc(ev.name)}</h2>
-    <div class="goal-grid">
-      <div class="stat"><div class="v">${P.ratioLabel(p.level)}</div><div class="l">Degrau atual</div></div>
-      <div class="stat"><div class="v" style="color:var(--lamp)">${P.ratioLabel(target)}</div><div class="l">Meta para a prova</div></div>
-      <div class="stat wide"><div class="v num">${Math.round(reachEst)} min</div><div class="l">Previsão para os ${String(km).replace('.', ',')} km no dia da prova, ${P.ratioWords(proj.reachLevel)}</div></div>
-    </div>
-    ${short ? `<div class="note warn" style="margin-top:10px"><span class="dot"></span><div><b>Prazo apertado.</b> Com ${ctx.weeklyTarget} treinos por semana, a projeção chega em ${P.ratioLabel(proj.reachLevel)}, não em ${P.ratioLabel(target)}. Dá para completar a prova nessa estratégia; a meta completa fica para a próxima.</div></div>` : ''}
+    <section class="card pair" style="margin-top:14px">${raceHead(ev)}${stairs(ev, id)}
+      <p class="sub" style="margin-top:10px">${esc(pname(id))} está em <b>${stepProse(p.level)}</b> e a meta da prova é <b style="color:var(--lamp)">${stepProse(target)}</b>. Previsão para os ${String(km).replace('.', ',')} km: <b>${Math.round(reachEst)} min</b> no dia da prova${Math.round(nowEst) !== Math.round(reachEst) ? ` (${Math.round(nowEst)} min se fosse hoje)` : ''}.</p></section>
+    ${short ? `<div class="note warn" style="margin-top:10px"><span class="dot"></span><div><b>Prazo apertado.</b> Com ${ctx.weeklyTarget} treinos por semana, a projeção chega em ${stepProse(proj.reachLevel)}, não em ${stepProse(target)}. Dá para completar a prova nessa estratégia; a meta completa fica para a próxima.</div></div>` : ''}
     <p class="small" style="margin:12px 2px 0">Projeção considerando que todo treino sai na medida. Os dias são sugestões: treine quando der, sem dias seguidos.</p>
     ${weeks}
     ${explain}`;
@@ -308,7 +316,10 @@ function viewRaces() {
   const upcoming = all.filter(e => e.date >= t).sort((a, b) => a.date.localeCompare(b.date));
   const past = all.filter(e => e.date < t).sort((a, b) => b.date.localeCompare(a.date));
   const ev = upcoming[0];
-  let main = `<div class="card"><p class="sub" style="margin-bottom:14px">Nenhuma prova marcada. Cadastre a próxima para o plano mirar nela.</p><button class="btn" data-a="event-new">Adicionar prova</button></div>`;
+  let main = `<section class="card art-card">${Art.chegada({ runners: [], confetti: false, h: 190 })}
+    <div class="body"><div class="done-title">Nenhuma prova marcada</div>
+    <p class="sub" style="margin:6px 0 14px">Com uma prova no calendário, o plano passa a mirar nela: define a meta e quantos treinos cabem até lá.</p>
+    <button class="btn" data-a="event-new" style="margin-top:0">Adicionar prova</button></div></section>`;
   if (ev) {
     const d = P.parseYmd(ev.date), days = P.daysBetween(today(), d);
     main = `<section class="card race-card">
@@ -328,7 +339,7 @@ function viewRaces() {
           const est = P.estimateRaceMin(p.level, Number(ev.distanceKm) || 5, p);
           return `<div class="who-row" style="${cvar(id)}"><span class="bar" style="width:4px;height:34px;border-radius:2px;background:var(--c)"></span>
             <div><div class="nm" style="font-weight:600">${esc(pname(id))}</div><div class="small">${P.ratioWords(p.level)}</div></div>
-            <div class="mins num" style="margin-left:auto;font:700 24px/1 var(--display)">${Math.round(est)}′</div></div>`;
+            <div class="mins num" style="margin-left:auto;font:700 24px/1 var(--display)">${Math.round(est)}<small style="font:400 12px var(--body);color:var(--muted);margin-left:3px">min</small></div></div>`;
         }).join('')}
       </div>
       <div class="actions" style="display:grid;grid-template-columns:${ev.url ? '1fr 1fr' : '1fr'};gap:8px">
@@ -353,7 +364,7 @@ function viewRaces() {
     ${past.length ? `<div class="list">${past.map(row).join('')}</div>` : `<div class="list"><div class="empty">As provas que passarem ficam aqui, com o tempo de cada um.</div></div>`}`;
 }
 
-// ---------- Nós ----------
+// ---------- Dupla ----------
 function weeksStreak() {
   const target = D().settings?.weeklyTarget || 3;
   let n = 0;
@@ -392,14 +403,25 @@ function viewUs() {
     return `<button class="list-row hist" data-a="session" data-id="${s.id}">
       <div class="dots">${ids.map(id => `<i style="${cvar(id)}"></i>`).join('')}</div>
       <div class="grow"><div class="t">${P.TYPE_NAMES[s.type] || 'Treino'}, ${dShort(d)}</div><div class="s">${eff}</div></div>
-      <span class="s num" style="color:var(--muted);font-size:14px">${Math.round((s.durationSec || 0) / 60)}′</span></button>`;
+      <span class="s num" style="color:var(--muted);font-size:14px">${mins(s.durationSec || 0)}</span></button>`;
   }).join('');
 
-  return `${topBar('', 'Nós')}
+  const mate = other(S.me);
+  const mateIn = person(mate).joined || sessionsOf(mate).length > 0;
+  const invite = S.store.mode === 'cloud' && !mateIn ? `<section class="card art-card">${Art.convite(pcolor(S.me), pcolor(mate), 180)}
+    <div class="body"><div class="done-title">${esc(pname(mate))} ainda não entrou</div>
+    <p class="sub" style="margin:6px 0 14px">Mande o convite. Quando ${esc(pname(mate))} abrir o app e escolher o nome, vocês passam a ver o progresso um do outro.</p>
+    <button class="btn" data-a="invite" style="margin-top:0">Copiar link de convite</button></div></section>` : '';
+  if (!all.length) return `${topBar('', 'Dupla')}${invite}
+    <section class="card art-card">${Art.largada()}
+    <div class="body"><div class="done-title">Nenhum treino ainda</div>
+    <p class="sub" style="margin-top:6px">Depois do primeiro treino, aparecem aqui o calendário de vocês dois, as semanas seguidas na meta e o histórico.</p></div></section>`;
+
+  return `${topBar('', 'Dupla')}${invite}
     <div class="goal-grid">
-      <div class="stat"><div class="v num">${streak}</div><div class="l">${streak === 1 ? 'Semana' : 'Semanas'} seguidas com os dois na meta</div></div>
-      <div class="stat"><div class="v num">${sameDay}</div><div class="l">Dias em que os dois treinaram</div></div>
-      <div class="stat"><div class="v num">${(totalSec / 3600).toFixed(1).replace('.', ',')} h</div><div class="l">Em movimento, somando tudo</div></div>
+      <div class="stat"><div class="v num">${streak}</div><div class="l">${streak === 1 ? 'Semana seguida' : 'Semanas seguidas'} com os dois na meta</div></div>
+      <div class="stat"><div class="v num">${sameDay}</div><div class="l">${sameDay === 1 ? 'Dia em que os dois treinaram' : 'Dias em que os dois treinaram'}</div></div>
+      <div class="stat"><div class="v num">${(totalSec / 3600).toFixed(1).replace('.', ',')} h</div><div class="l">Em movimento, somando os dois</div></div>
       <div class="stat"><div class="v num">${km ? km.toFixed(1).replace('.', ',') : '–'}</div><div class="l">Km registrados pelos dois</div></div>
     </div>
     <h2 class="sec">Últimas 8 semanas</h2>
@@ -415,21 +437,15 @@ function viewSettings() {
   const tog = (k, label, hint) => `<div class="field row"><div><div class="lbl">${label}</div>${hint ? `<div class="hint">${hint}</div>` : ''}</div>
     <label class="switch"><input type="checkbox" data-a="alert" data-k="${k}" ${a[k] ? 'checked' : ''} aria-label="${label}"><span></span></label></div>`;
   const syncTxt = S.store.mode === 'cloud'
-    ? `<div class="field"><div class="lbl">Sincronizado com ${esc(pname(other(S.me)))}</div><div class="hint">Status: ${S.store.status}. Código do casal:</div><div class="code">${esc(S.code)}</div></div>
+    ? `<div class="field"><div class="lbl">Sincronizado com ${esc(pname(other(S.me)))}</div><div class="hint">Status: ${S.store.status}. Código da dupla:</div><div class="code">${esc(S.code)}</div></div>
        <div class="field"><button class="btn quiet" data-a="invite">Copiar link de convite</button><div class="hint" style="margin-top:8px">Mande para ${esc(pname(other(S.me)))}. Abrindo o link no iPhone, o app já entra no mesmo código.</div></div>`
-    : `<div class="field"><div class="lbl">Só neste iPhone</div><div class="hint">${cloudEnabled ? 'Sem código do casal. ' : 'O Firebase ainda não foi configurado (veja o README). '}Os dados não sincronizam com ${esc(pname(other(S.me)))}. Exporte de vez em quando para não perder nada.</div></div>
+    : `<div class="field"><div class="lbl">Só neste iPhone</div><div class="hint">${cloudEnabled ? 'Sem código da dupla. ' : 'O Firebase ainda não foi configurado (veja o README). '}Os dados não sincronizam com ${esc(pname(other(S.me)))}. Exporte de vez em quando para não perder nada.</div></div>
        ${cloudEnabled ? `<div class="field"><button class="btn quiet" data-a="connect">Conectar com ${esc(pname(other(S.me)))}</button></div>` : ''}`;
   const me = S.me, p = person(me), mate = other(me);
   const COLOR_NAMES = { sky: 'Azul', rose: 'Rosa', violet: 'Lilás', sand: 'Areia', ice: 'Gelo' };
   const wt = s.weeklyTarget || 3;
   return `${topBar('', 'Ajustes')}
-    <h2 class="sec">Quem usa este aparelho</h2>
-    <div class="group choice" role="radiogroup" aria-label="Quem usa este aparelho">${PEOPLE.map(id =>
-      `<button class="choice-row" role="radio" aria-checked="${me === id}" data-a="me" data-v="${id}" style="${cvar(id)}">
-        <span class="who-dot"></span><span class="grow">${esc(pname(id))}</span><span class="radio" aria-hidden="true"></span></button>`).join('')}</div>
-    <p class="small" style="margin:8px 2px 0">As configurações abaixo são de quem estiver marcado aqui.</p>
-
-    <h2 class="sec">Seu perfil</h2>
+    <h2 class="sec" style="margin-top:0">Seu perfil</h2>
     <div class="group" style="${cvar(me)}">
       <div class="field"><label class="f" style="margin:0"><span>Nome</span><input class="input" data-a="pname" data-id="${me}" value="${esc(p.name)}" maxlength="24" autocomplete="off"></label></div>
       <div class="field"><div class="lbl">Sua cor</div><div class="hint">Aparece na pista, no calendário e nos treinos.</div>
@@ -474,6 +490,11 @@ function viewSettings() {
       <div class="field"><label class="btn quiet" style="cursor:pointer">Importar backup<input type="file" accept="application/json" data-a="import" hidden></label></div>
       ${S.store.mode === 'cloud' ? `<div class="field"><button class="btn danger" data-a="leave">Desconectar este iPhone</button></div>` : ''}
     </div>
+    <h2 class="sec">Quem usa este aparelho</h2>
+    <div class="group choice" role="radiogroup" aria-label="Quem usa este aparelho">${PEOPLE.map(id =>
+      `<button class="choice-row" role="radio" aria-checked="${me === id}" data-a="me" data-v="${id}" style="${cvar(id)}">
+        <span class="who-dot"></span><span class="grow">${esc(pname(id))}${S.armMe === id ? `<span class="arm-txt">Toque de novo para trocar</span>` : ''}</span><span class="radio" aria-hidden="true"></span></button>`).join('')}</div>
+    <p class="small" style="margin:8px 2px 0">Este aparelho registra treinos como ${esc(p.name)}. Só troque se o celular mudou de mãos.</p>
     <p class="small" style="text-align:center;margin-top:24px">Nightrun ${VERSION}</p>`;
 }
 
@@ -482,7 +503,7 @@ function openSheet(sh) { S.sheet = sh; renderSheet(true); }
 function closeSheet() { S.sheet = null; sheetEl.hidden = true; sheetEl.innerHTML = ''; }
 function renderSheet(enter = false) {
   const sh = S.sheet; if (!sh) return closeSheet();
-  const body = { watch: sheetWatch, checkin: sheetCheckin, result: sheetSaved, event: sheetEvent, raceResult: sheetRaceResult, session: sheetSession, connect: sheetConnect }[sh.kind]();
+  const body = { pickType: sheetPickType, watch: sheetWatch, checkin: sheetCheckin, result: sheetSaved, event: sheetEvent, raceResult: sheetRaceResult, session: sheetSession, connect: sheetConnect }[sh.kind]();
   const scroll = sheetEl.querySelector('.sheet')?.scrollTop || 0;
   sheetEl.hidden = false;
   sheetEl.innerHTML = `<div class="sheet${enter ? ' enter' : ''}" role="dialog" aria-modal="true"><div class="grab"></div>${body}</div>`;
@@ -545,16 +566,32 @@ function sheetWatch() {
     </div>`;
   }).join('');
   return `<div class="s-head"><h2>No Apple Watch</h2><button class="close x" data-a="sheet-close" aria-label="Fechar">${ICON.close}</button></div>
-    <p class="sub" style="margin-top:6px">O relógio vibra e mostra cada troca, mesmo com o iPhone travado, e o treino vai para o app Saúde. Depois, registre aqui como foi.</p>
+    <div class="art-inset">${Art.pulso(170)}</div>
+    <p class="sub" style="margin-top:12px">O relógio vibra e mostra cada troca, mesmo com o iPhone travado, e o treino vai para o app Saúde. Depois, registre aqui como foi.</p>
     ${blocks}
-    <div class="actions"><button class="btn" data-a="log">Registrar treino feito</button></div>`;
+    <div class="actions"><button class="btn" data-a="log">Já treinei, registrar</button>
+      <button class="btn ghost" data-a="start">Usar o cronômetro do app</button></div>`;
+}
+
+function sheetPickType() {
+  const cur = currentPlans()[S.me].type, suggested = nextFor(S.me).type;
+  return `<div class="s-head"><h2>Trocar treino</h2><button class="close x" data-a="sheet-close" aria-label="Fechar">${ICON.close}</button></div>
+    <p class="sub" style="margin-top:6px">O plano sugere um, mas a escolha é sua. O degrau só sobe no Base.</p>
+    <div class="group choice" role="radiogroup" style="background:var(--bg);margin-top:14px">${['base', 'long', 'easy'].map(k => {
+      const pl = nextFor(S.me, k);
+      return `<button class="choice-row tall" role="radio" aria-checked="${k === cur}" data-a="force" data-v="${k === suggested ? '' : k}">
+        <span class="grow"><span class="t">${P.TYPE_NAMES[k]}${k === suggested ? '<span class="badge new">sugerido</span>' : ''}</span>
+        <span class="s">${mins(P.totalSec(P.buildSegments(pl)))}. ${P.TYPE_HINTS[k]}</span></span><span class="radio" aria-hidden="true"></span></button>`;
+    }).join('')}</div>`;
 }
 
 function sheetSaved() {
   const sh = S.sheet;
-  return `<div class="s-head"><h2>Treino salvo</h2></div>
+  const up = sh.lines.some(([, , , rose]) => rose);
+  return `<div class="s-head"><h2>${up ? 'Subiu um degrau' : 'Treino salvo'}</h2></div>
+    ${up ? `<div class="art-inset">${Art.chegada({ runners: [pcolor(S.me)], h: 170 })}</div>` : ''}
     <div style="margin-top:10px">${sh.lines.map(([id, msg, plan]) => `<div class="result-line" style="${cvar(id)}"><span class="bar"></span>
-      <div><div style="font-weight:600">${esc(pname(id))}</div><div class="sub" style="color:var(--text)">${esc(msg)}</div>
+      <div><div class="sub" style="color:var(--text)">${esc(msg)}</div>
       <div class="small" style="margin-top:4px">Próximo: ${P.TYPE_NAMES[plan.type]}, ${plan.runSec ? P.ratioLabel(plan.level) : 'contínuo'}</div></div></div>`).join('')}</div>
     <div class="actions"><button class="btn" data-a="sheet-close">Fechar</button></div>`;
 }
@@ -620,7 +657,7 @@ function sheetConnect() {
   const sh = S.sheet;
   return `<div class="s-head"><h2>Conectar</h2><button class="close x" data-a="sheet-close" aria-label="Cancelar">${ICON.close}</button></div>
     <p class="sub" style="margin-top:6px">Um de vocês cria o código e manda o link para o outro.</p>
-    <div class="actions"><button class="btn" data-a="code-create">Criar código do casal</button></div>
+    <div class="actions"><button class="btn" data-a="code-create">Criar código da dupla</button></div>
     <label class="f"><span>Ou cole o código que recebeu</span><input class="input" data-bind="code" value="${esc(sh.code || '')}" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
     <div class="actions"><button class="btn quiet" data-a="code-join">Entrar com este código</button></div>
     ${sh.err ? `<p class="small" style="color:var(--danger)">${esc(sh.err)}</p>` : ''}
@@ -740,8 +777,8 @@ async function saveCheckin() {
   sh.ids.forEach(id => { session.plans[id] = sh.plans[id]; });
   await S.store.saveSession(session);
   for (const id of sh.ids) await S.store.updatePerson(id, results[id].after);
-  sh.ids.forEach(id => lines.push([id, results[id].msg, nextFor(id)]));
-  S.forceType = null;
+  sh.ids.forEach(id => lines.push([id, results[id].msg, nextFor(id), results[id].after.level > results[id].before.level]));
+  S.forceType = null; S.trainAnyway = null;
   openSheet({ kind: 'result', lines });
   render();
 }
@@ -756,9 +793,11 @@ document.addEventListener('click', async ev => {
   const a = el.dataset.a, v = el.dataset.v, id = el.dataset.id;
   switch (a) {
     case 'route': setRoute(el.dataset.r); break;
-    case 'force': S.forceType = v || null; render(); break;
+    case 'force': S.forceType = v || null; if (S.sheet?.kind === 'pickType') closeSheet(); render(); break;
+    case 'pick-type': openSheet({ kind: 'pickType' }); break;
+    case 'train-anyway': S.trainAnyway = P.ymd(today()); render(); break;
     case 'planwho': S.planWho = v; render(); break;
-    case 'start': startWorkout(); break;
+    case 'start': if (S.sheet) closeSheet(); startWorkout(); break;
     case 'watch': openSheet({ kind: 'watch' }); break;
     case 'watch-saved': {
       const list = new Set(person(S.me).watchSaved || []); list.add(v);
@@ -824,7 +863,10 @@ document.addEventListener('click', async ev => {
       closeSheet(); toast('Treino excluído.'); render(); break;
     }
 
-    case 'me': S.me = v; ls.set('lal:me', v); S.planWho = null; render(); break;
+    case 'me':
+      if (v === S.me) { S.armMe = null; render(); break; }
+      if (S.armMe !== v) { S.armMe = v; render(); break; }
+      S.armMe = null; S.me = v; ls.set('lal:me', v); S.planWho = null; S.forceType = null; render(); toast(`Agora este aparelho é de ${pname(v)}.`); break;
     case 'weekly': await S.store.updateSettings({ weeklyTarget: Number(v) }); render(); break;
     case 'lvl': {
       const p = person(id); const n = Math.max(1, Math.min(P.MAX_LEVEL, p.level + Number(v)));
@@ -866,7 +908,7 @@ document.addEventListener('click', async ev => {
     }
     case 'ob-create': await obCreate(); break;
     case 'ob-join': await obJoin(); break;
-    case 'ob-pick': S.me = v; ls.set('lal:me', v); S.onboarding = null; history.replaceState(null, '', location.pathname); render(); break;
+    case 'ob-pick': S.me = v; ls.set('lal:me', v); S.onboarding = null; S.store.updatePerson(v, { joined: true }); history.replaceState(null, '', location.pathname); render(); break;
     case 'retry': boot(); break;
   }
 });
@@ -955,6 +997,7 @@ function attach(st) {
   S.store = st;
   st.subscribe(() => { if (S.onboarding) { if (S.onboarding.step === 'pick') renderOnboarding(); return; } render(); if (S.sheet && ['session'].includes(S.sheet.kind)) renderSheet(); });
   render();
+  if (PEOPLE.includes(S.me) && !person(S.me).joined) st.updatePerson(S.me, { joined: true });
   // treino em andamento?
   const ap = ls.get('lal:activePlan');
   if (ap && !S.workout && !S.onboarding) { try { startWorkout(JSON.parse(ap)); } catch { ls.del('lal:activePlan'); } }
@@ -972,9 +1015,9 @@ function renderOnboarding() {
   const ob = S.onboarding || { step: 'start' };
   const err = ob.err ? `<p class="small" style="color:var(--danger);margin-top:12px">${esc(ob.err)}</p>` : '';
   const busy = ob.busy ? 'disabled' : '';
-  const art = `<img class="brand-icon" src="icons/icon-192.png" alt="" width="72" height="72">`;
+  const art = `<div class="art-hero">${Art.largada()}</div>`;
   if (ob.step === 'invite') {
-    app.innerHTML = `<section class="welcome">${art}
+    app.innerHTML = `<section class="welcome"><div class="art-hero">${Art.convite('var(--p1)', 'var(--p0)', 230)}</div>
       <h1 class="wordmark" style="font-size:48px">Você foi<span class="l2">convidado</span></h1>
       <p class="lead">O Nightrun funciona instalado na tela de início. Copie o código antes, para colar no app.</p>
       <div class="code-box"><div class="code">${esc(ob.code)}</div><button class="btn" data-a="copy-code">${ob.copied ? 'Código copiado' : 'Copiar código'}</button></div>
@@ -1074,6 +1117,7 @@ function lockSafeArea() {
 }
 
 function init() {
+  document.body.insertAdjacentHTML('afterbegin', Art.DEFS);
   lockSafeArea();
   // Sem zoom: o iOS ignora user-scalable=no para pinça, então bloqueia o gesto aqui.
   document.addEventListener('gesturestart', e => e.preventDefault());
