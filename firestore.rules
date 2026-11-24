@@ -1,11 +1,29 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Código da dupla: 20 caracteres aleatórios (newCoupleCode em js/store.js).
+    function codigoOk(code) { return code.matches('[a-z0-9]{20,40}'); }
+
     match /couples/{code} {
-      // Só quem tem o código de 20 caracteres lê ou escreve. Listar casais é proibido.
-      allow get, create, update: if code.size() >= 20;
-      match /{sub=**} {
-        allow read, write: if code.size() >= 20;
+      // Só quem tem o código lê ou escreve. Listar duplas e apagar a dupla: proibido.
+      allow get: if codigoOk(code);
+      // Documento da dupla: só pessoas, ajustes e data de criação; tamanho limitado para ninguém encher a cota.
+      allow create: if codigoOk(code)
+        && request.resource.data.keys().hasOnly(['people', 'settings', 'createdAt'])
+        && request.resource.data.people.size() <= 4
+        && request.resource.data.settings.size() <= 40;
+      allow update: if codigoOk(code)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['people', 'settings', 'createdAt'])
+        && request.resource.data.people.size() <= 4
+        && request.resource.data.settings.size() <= 40;
+
+      // Só as duas coleções que o app usa (provas e treinos), um nível só, com limite de campos.
+      match /{col}/{id} {
+        allow read: if codigoOk(code) && col in ['events', 'sessions'];
+        allow create, update: if codigoOk(code) && col in ['events', 'sessions']
+          && id.size() <= 40
+          && request.resource.data.size() <= 30;
+        allow delete: if codigoOk(code) && col in ['events', 'sessions'];
       }
     }
   }
